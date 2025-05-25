@@ -39,6 +39,10 @@ export class VerletPhysics {
 
     frameNum = 0;
 
+    friction = 0.5;
+
+    stiffness = 0.25;
+
     constructor(renderer){
         this.renderer = renderer;
     }
@@ -97,6 +101,8 @@ export class VerletPhysics {
 
         this.uniforms.dampening = uniform(0.995);
         this.uniforms.time = uniform(0.0);
+        this.uniforms.stiffness = uniform(this.stiffness);
+        this.uniforms.friction = uniform(this.friction);
 
         const positionArray = new Float32Array(this.vertexCount * 4);
         const influencerPtrArray = new Uint32Array(this.vertexCount * 2);
@@ -161,7 +167,7 @@ export class VerletPhysics {
             const v0 = this.positionData.element(vertices.x).toVec3();
             const v1 = this.positionData.element(vertices.y).toVec3();
             const params = this.springParamsData.element(instanceIndex);
-            const stiffness = params.x;
+            const stiffness = this.uniforms.stiffness; //params.x;
             const restLength = params.y;
             const delta = (v1 - v0).toVar();
             const dist = delta.length().max(0.000001).toVar();
@@ -187,18 +193,20 @@ export class VerletPhysics {
                 force.y.subAssign(0.000001);
                 const noise = triNoise3Dvec(position.xyz.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
                 const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
-                force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
+                force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(5));
 
                 const projectedPoint = position.xyz.add(force).toVar();
-                const forceMagSquared = dot(force, force).toVar();
+                const forceMagSquared = dot(force.mul(1.001), force.mul(1.001)).toVar();
                 const [closestPoint, closestNormal] = this.colliders[0].findClosestPoint(projectedPoint, forceMagSquared);
 
                 const closestPointDelta = closestPoint.sub(projectedPoint).toVar("closestPointDelta");
+                const forceSet = force.toVar();
                 If(dot(closestPointDelta, closestNormal).greaterThan(0), () => {
                    force.assign(closestPoint.sub(position.xyz));
+                   forceSet.assign(force.mul(this.uniforms.friction.oneMinus()));
                 });
 
-                this.forceData.element(instanceIndex).assign(force);
+                this.forceData.element(instanceIndex).assign(forceSet);
                 this.positionData.element(instanceIndex).addAssign(force);
 
             });
@@ -256,6 +264,9 @@ export class VerletPhysics {
         if (!this.isBaked) {
             console.error("Verlet system not yet baked!");
         }
+        this.uniforms.stiffness.value = this.stiffness;
+        this.uniforms.friction.value = this.friction;
+
         this.frameNum++;
         if (this.frameNum % 50 === 0) {
             this.readPositions().then(() => {}); // no await to prevent blocking!

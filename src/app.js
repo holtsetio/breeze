@@ -101,6 +101,8 @@ class App {
 
         this.physics = new VerletPhysics(this.renderer);
         this.physics.addCollider(this.statue.bvh);
+        conf.gui.addBinding( this.physics, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
+        conf.gui.addBinding( this.physics, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
         /*const stiffness = 0.2;
         const rows = [];
@@ -123,8 +125,8 @@ class App {
             }
         }*/
         await Cloth.createMaterial(this.physics);
-        for (let i = 0; i < 10; i++) {
-            const cloth = new Cloth(this.physics, 100, 100);
+        for (let i = 0; i < 1; i++) {
+            const cloth = new Cloth(this.physics, 80, 80);
             this.cloths.push(cloth);
             this.scene.add(cloth.object);
         }
@@ -132,7 +134,7 @@ class App {
         await this.physics.bake();
 
         for (let i = 0; i < this.cloths.length; i++) {
-            const position = new THREE.Vector3(-2 - 6 * i, 1.0 + Math.random() * 7, -1.5 + Math.random() * 3);
+            const position = new THREE.Vector3(-2 - 1 * i, 1.0 + Math.random() * 7, -1.5 + Math.random() * 3);
             const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, 0, 0));
             await this.physics.resetObject(this.cloths[i].id, position, quaternion);
         }

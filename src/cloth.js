@@ -33,8 +33,8 @@ const loadTexture = (file) => {
     });
 }
 
-const clothWidth = 0.04;
-const segmentSize = 0.05;
+const clothWidth = 0.05;
+const segmentSize = 0.1;
 
 export class Cloth {
     id = 0;
@@ -68,7 +68,7 @@ export class Cloth {
         const sideArray = new Float32Array(3 * vertexCount);
         const uvArray = new Float32Array(2 * vertexCount);
 
-        const uvScale = 0.02;
+        const uvScale = 0.08;
         for (let i=0; i<vertexCount; i++) {
             const px = positionArray[i * 3 + 0];
             const py = positionArray[i * 3 + 1];
@@ -115,7 +115,7 @@ export class Cloth {
     }
 
     buildVerletGeometry() {
-        const stiffness = 0.05;
+        const stiffness = 0.25;
         for (let y = 0; y <= this.heightSegments; y++) {
             const row = [];
             this.verletVertices.push(row);
@@ -142,11 +142,11 @@ export class Cloth {
                     }
                 }*/
 
-                if (x > 1 && y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x-2], stiffness); }
-                if (y > 1 && x < this.widthSegments - 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x+2], stiffness); }
+                //if (x > 1 && y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x-2], stiffness); }
+                //if (y > 1 && x < this.widthSegments - 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x+2], stiffness); }
 
-                if (x > 2 && y > 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x-3], stiffness); }
-                if (y > 2 && x < this.widthSegments - 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x+3], stiffness); }
+                //if (x > 2 && y > 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x-3], stiffness); }
+                //if (y > 2 && x < this.widthSegments - 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x+3], stiffness); }
             }
         }
     }

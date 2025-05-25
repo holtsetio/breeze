@@ -2,12 +2,13 @@ import * as THREE from "three/webgpu";
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import Venus from '../assets/venus.obj';
-import VenusSimple from '../assets/venus_simple.obj';
+import VenusSimple from '../assets/venus_simple3.obj';
 import VenusColorMap from '../assets/VenusDeMilo_t_baseColor.png';
 import VenusRoughnessMap from '../assets/VenusDeMilo_t_metallicRoughness.png';
 import VenusNormalMap from '../assets/VenusDeMilo_t_normal.png';
 
 import {BVH} from "./bvh.js";
+import {normalWorld, vec4} from "three/tsl";
 
 
 const textureLoader = new THREE.TextureLoader();
@@ -44,10 +45,10 @@ export class Statue {
         const material = new THREE.MeshStandardNodeMaterial({
             map, roughnessMap, normalMap,
         })
+        //material.colorNode = vec4(normalWorld, 1);
         const geometry = obj.children[0].geometry;
         geometry.scale(25,25,25);
         geometry.rotateY(Math.PI * -0.5);
-        this.object = new THREE.Mesh(geometry, material);
 
         const objSimple = await loadObj(VenusSimple);
         console.log(objSimple);
@@ -55,6 +56,8 @@ export class Statue {
         geometrySimple.scale(25,25,25);
         geometrySimple.rotateY(Math.PI * -0.5);
 
+
+        this.object = new THREE.Mesh(geometry, material);
         this.bvh = new BVH(geometrySimple);
     }
 
