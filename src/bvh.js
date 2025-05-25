@@ -232,7 +232,7 @@ export class BVH {
             return dot(delta, delta);
         };
 
-        const closestPointToTriangle = (point, a, b, c) => {
+        const closestPointToTriangle = (point, v0, v1, v2) => {
             const v10 = v1.sub(v0).toVar("v10");
             const v21 = v2.sub(v1).toVar("v21");
             const v02 = v0.sub(v2).toVar("v02");
@@ -258,35 +258,38 @@ export class BVH {
                 w.assign(0);
                 u.assign(v.oneMinus());
             })
-            return add(u.mul(v1), v.mul(v2), w.mul(v0));
+            return [add(u.mul(v1), v.mul(v2), w.mul(v0)).toVar("closestTrianglePoint"), nor.negate()];
         };
 
         const distanceToTriangles = (point, offset, count) => {
             const end = offset.add(count).toVar("end");
             const closestTriangleDistanceSquared = float(1e9).toVar("closestTriangleDistanceSquared");
             const outPoint = vec3().toVar("outPoint");
+            const outNormal = vec3().toVar("outNormal");
             Loop({ start: offset, end: end, type: 'uint', name: 'triangleIndex', condition: '<' }, ({triangleIndex}) => {
                 const a = this.triangleBuffer.element(triangleIndex).get("a").toVar("a");
                 const b = this.triangleBuffer.element(triangleIndex).get("b").toVar("b");
                 const c = this.triangleBuffer.element(triangleIndex).get("c").toVar("c");
-                const closestPoint = closestPointToTriangle(point, a, b, c).toVar("closestTrianglePoint");
+                const [closestPoint, closestNormal] = closestPointToTriangle(point, a, b, c);
                 const delta = point.sub(closestPoint).toVar("triangleDelta");
                 const sqDist = dot(delta,delta).toVar();
                 If(sqDist.lessThan(closestTriangleDistanceSquared), () => {
                     closestTriangleDistanceSquared.assign(sqDist);
                     outPoint.assign(closestPoint);
+                    outNormal.assign(closestNormal);
                 });
             });
-            return [closestTriangleDistanceSquared, outPoint];
+            return [closestTriangleDistanceSquared, outPoint, outNormal];
         };
 
-        this.findClosestPoint = (point, maxDistance = float(1e9)) => {
+        this.findClosestPoint = (point, maxDistanceSquared = float(1e12)) => {
             const ptr = int(0).toVar("ptr");
             const stack = array("uint", this.maxDepth*2).toVar("stack");
             stack.element(0).assign(uint(0));
 
             const closestPoint = vec3().toVar();
-            const closestDistanceSquared = maxDistance.mul(maxDistance).toVar("closestDistanceSquared");
+            const closestNormal = vec3().toVar();
+            const closestDistanceSquared = maxDistanceSquared.toVar("closestDistanceSquared");
             const found = bool(false).toVar("found");
             Loop(ptr.greaterThan(int(-1)).and(ptr.lessThan(int(this.maxDepth*2))), () => {
                 const currNodeIndex = stack.element(ptr).toVar("currNodeIndex");
@@ -301,11 +304,12 @@ export class BVH {
                 If(isLeaf.equal(uint(1)), () => {
                     const offset = bvhNode.get("offset").toVar("offset");
                     const count = bvhNode.get("count").toVar("count");
-                    const [closestTriangleDistance, closestTrianglePoint] = distanceToTriangles(point, offset, count);
+                    const [closestTriangleDistance, closestTrianglePoint, closestTriangleNormal] = distanceToTriangles(point, offset, count);
                     If(closestTriangleDistance.lessThanEqual(closestDistanceSquared), () => {
                         found.assign(true);
                         closestDistanceSquared.assign(closestTriangleDistance);
                         closestPoint.assign(closestTrianglePoint);
+                        closestNormal.assign(closestTriangleNormal);
                     });
                 }).Else(() => {
                     const leftIndex = currNodeIndex.add(uint(1)).toVar("leftIndex");
@@ -328,7 +332,7 @@ export class BVH {
 
             });
 
-            return closestPoint;
+            return [closestPoint, closestNormal];
         }
 
 

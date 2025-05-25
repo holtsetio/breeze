@@ -189,47 +189,17 @@ export class VerletPhysics {
                 const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
                 force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
 
+                const projectedPoint = position.xyz.add(force).toVar();
+                const forceMagSquared = dot(force, force).toVar();
+                const [closestPoint, closestNormal] = this.colliders[0].findClosestPoint(projectedPoint, forceMagSquared);
 
-                const execForce = force.toVar("execForce");
-                const forceMag = force.length().toVar();
-                if (this.colliders.length > 0) {
+                const closestPointDelta = closestPoint.sub(projectedPoint).toVar("closestPointDelta");
+                If(dot(closestPointDelta, closestNormal).greaterThan(0), () => {
+                   force.assign(closestPoint.sub(position.xyz));
+                });
 
-                    If(forceMag.greaterThan(0), () => {
-                        const rayOrigin = position.xyz;
-                        const rayDirection = force.div(forceMag).toVar();
-                        const [isHit, hitDistance, hitNormal] = this.colliders[0].intersect(rayOrigin, rayDirection, forceMag);
-                        /*If(isHit, () => {
-                            execForce.mulAssign(hitDistance.mul(0.8).div(forceMag));
-                        });*/
-
-                        /*If(isHit, () => {
-                            const delta = forceMag.sub(hitDistance).mul(hitNormal).mul(dot(hitNormal, rayDirection.negate()));
-                            const newForce = force.xyz.add(delta).toVar();
-                            force.assign(newForce);
-                        });*/
-                        If(isHit, () => {
-                            const delta = forceMag.sub(hitDistance).mul(hitNormal).mul(dot(hitNormal, rayDirection.negate())).mul(1.3);
-                            const newForce = force.xyz.add(delta).toVar();
-                            const newForceMag = newForce.length().toVar();
-                            If(newForceMag.greaterThan(0), () => {
-                                const newRayDirection = newForce.div(newForceMag).toVar();
-                                const [isHit2, hitDistance2, hitNormal2] = this.colliders[0].intersect(rayOrigin, newRayDirection, forceMag);
-                                newForce.assign(hitDistance2.mul(0.99).mul(newRayDirection));
-                            });
-                            execForce.assign(newForce);
-                            //hitDistance.subAssign(select(isHit, 0.01, 0))
-                            //force.mulAssign(hitDistance.div(forceMag));
-                        });
-
-                    });
-                }
-
-
-
-                const execForceMag = execForce.length().toVar();
-                //this.forceData.element(instanceIndex).assign(select(execForceMag.greaterThan(0.000001), execForce.normalize().mul(forceMag), execForce));
-                this.forceData.element(instanceIndex).assign(execForce);
-                this.positionData.element(instanceIndex).addAssign(execForce);
+                this.forceData.element(instanceIndex).assign(force);
+                this.positionData.element(instanceIndex).addAssign(force);
 
             });
         })().debug().compute(this.vertexCount);
