@@ -5,9 +5,6 @@ import mobile from "is-mobile";
 class Conf {
     gui = null;
 
-    maxParticles = 8192 * 16;
-    particles = 8192 * 4;
-
     constructor() {
         if (mobile()) {
         }
@@ -33,11 +30,11 @@ class Conf {
             rows: 2,
         });
 
-        const settings = gui.addFolder({
+        this.settings = gui.addFolder({
             title: "settings",
             expanded: false,
         });
-        settings.addBinding(this, "particles", { min: 4096, max: this.maxParticles, step: 4096 }).on('change', () => { this.updateParams(); });
+
 
         this.gui = gui;
     }

@@ -53,7 +53,7 @@ class App {
         this.scene = new THREE.Scene();
 
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.15;
+        this.renderer.toneMappingExposure = 1.35;
 
         const hdriTexture = await loadHdr(hdri);
 
@@ -101,8 +101,8 @@ class App {
 
         this.physics = new VerletPhysics(this.renderer);
         this.physics.addCollider(this.statue.bvh);
-        conf.gui.addBinding( this.physics, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
-        conf.gui.addBinding( this.physics, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
+        conf.settings.addBinding( this.physics, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
+        conf.settings.addBinding( this.physics, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
         /*const stiffness = 0.2;
         const rows = [];
@@ -134,15 +134,16 @@ class App {
         await this.physics.bake();
 
         for (let i = 0; i < this.cloths.length; i++) {
-            const position = new THREE.Vector3(-2 - 1 * i, 1.0 + Math.random() * 7, -1.5 + Math.random() * 3);
+            const position = new THREE.Vector3(-2 - 1 * i, 4.0 + Math.random() * 3, -1.5 + Math.random() * 3);
             const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, 0, 0));
-            await this.physics.resetObject(this.cloths[i].id, position, quaternion);
+            await this.physics.resetObject(this.cloths[i].id, position);
         }
 
         this.springVisualizer = new SpringVisualizer(this.physics);
         //this.scene.add(this.springVisualizer.object);
 
 
+        /*
         const effectController = {
             focus: uniform( 10.0 ),
             aperture: uniform( 5 ),
@@ -157,7 +158,7 @@ class App {
         this.postProcessing.outputNode = dofPass;
         conf.gui.addBinding( effectController.focus, 'value', {min: 1.0, max: 50.0, step: 0.1 } );
         conf.gui.addBinding( effectController.aperture, 'value', { min: 0, max: 10, step: 0.1 });
-        conf.gui.addBinding( effectController.maxblur, 'value', { min: 0.0, max: 0.01, step: 0.001 });
+        conf.gui.addBinding( effectController.maxblur, 'value', { min: 0.0, max: 0.01, step: 0.001 });*/
 
         this.raycaster = new THREE.Raycaster();
         this.renderer.domElement.addEventListener("pointermove", (event) => { this.onMouseMove(event); });
@@ -187,9 +188,9 @@ class App {
         const object = this.cloths[this.physics.frameNum % this.cloths.length];
         const position = this.physics.objects[object.id].position;
         if (position.x > 30) {
-            const position = new THREE.Vector3(-2 - 6 * Math.random(), 1.0 + Math.random() * 7, -1.5 + Math.random() * 3);
+            const position = new THREE.Vector3(-2 - 6 * Math.random(), 4.0 + Math.random() * 3, -1.5 + Math.random() * 3);
             const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, 0, 0));
-            await this.physics.resetObject(object.id, position, quaternion)
+            await this.physics.resetObject(object.id, position)
         }
 
         await this.renderer.renderAsync(this.scene, this.camera);

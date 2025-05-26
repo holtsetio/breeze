@@ -196,6 +196,11 @@ export class VerletPhysics {
                 force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(5));
 
                 const projectedPoint = position.xyz.add(force).toVar();
+                If (projectedPoint.y.lessThan(0), () => {
+                    force.y.subAssign(projectedPoint.y);
+                    projectedPoint.y.assign(0);
+                });
+
                 const forceMagSquared = dot(force.mul(1.001), force.mul(1.001)).toVar();
                 const [closestPoint, closestNormal] = this.colliders[0].findClosestPoint(projectedPoint, forceMagSquared);
 
