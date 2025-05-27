@@ -193,7 +193,10 @@ export class VerletPhysics {
                 force.y.subAssign(0.000001);
                 const noise = triNoise3Dvec(position.xyz.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
                 const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
-                force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(5));
+                force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
+
+                const noise2 = triNoise3Dvec(position.xyz.mul(0.2), 0.5, this.uniforms.time).sub(vec3(0.285, 0.285, 0.285)).mul(0.0001);
+                force.addAssign(noise2);
 
                 const projectedPoint = position.xyz.add(force).toVar();
                 If (projectedPoint.y.lessThan(0), () => {

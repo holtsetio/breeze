@@ -9,9 +9,12 @@ import {Statue} from "./statue.js";
 
 import { dof } from 'three/addons/tsl/display/DepthOfFieldNode.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import hdri from "../assets/qwantani_noon_2k.hdr";
+import hdri from "../assets/piazza_martin_lutero_8k.hdr";
 import {Cloth} from "./cloth.js";
 import {GroundedSkybox} from "./GroundedSkybox.js";
+import {Leaf} from "./leaf.js";
+import {Lights} from "./lights.js";
+import {Petal} from "./petal.js";
 
 const loadHdr = async (file) => {
     const texture = await new Promise(resolve => {
@@ -53,7 +56,9 @@ class App {
         this.scene = new THREE.Scene();
 
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.35;
+        this.renderer.toneMappingExposure = 1.05;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         const hdriTexture = await loadHdr(hdri);
 
@@ -61,11 +66,17 @@ class App {
         //this.scene.background = hdriTexture;
         //this.scene.backgroundRotation.set(0,Math.PI,0);
         this.scene.environmentRotation.set(0,Math.PI,0);
+        this.scene.environmentIntensity = 0.5;
 
-        const skybox = new GroundedSkybox( hdriTexture, 10, 1000 );
-        skybox.position.y = 10 - 0.01;
+
+        const lights = new Lights();
+        this.scene.add(lights.object);
+
+        const skybox = new GroundedSkybox( hdriTexture, 5, 1000, 128, lights );
+        skybox.position.y = 5 - 0.01;
         skybox.rotation.y = Math.PI;
         this.scene.add( skybox );
+
 
         //const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1,2), new THREE.MeshBasicNodeMaterial({color: "#ffffff"}));
         //this.scene.add(ball);
@@ -104,39 +115,31 @@ class App {
         conf.settings.addBinding( this.physics, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
         conf.settings.addBinding( this.physics, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
-        /*const stiffness = 0.2;
-        const rows = [];
-        const w = 120;
-        const h = 120;
-        for (let y = 0; y < h; y++) {
-            const row = [];
-            rows.push(row);
-            for (let x = 0; x < w; x++) {
-                const position = new THREE.Vector3(-3, x / 60 - 0.05, y / 60 - 1);
-                const vertex = this.physics.addVertex(position);
-                row.push(vertex);
-                if (x > 0) { this.physics.addSpring(vertex, rows[y][x-1], stiffness); }
-                //if (x > 1) { this.physics.addSpring(vertex, rows[y][x-2], stiffness); }
-                if (y > 0) { this.physics.addSpring(vertex, rows[y-1][x], stiffness); }
-                //if (y > 1) { this.physics.addSpring(vertex, rows[y-2][x], stiffness); }
-                if (x > 0 && y > 0) { this.physics.addSpring(vertex, rows[y-1][x-1], stiffness); }
-                if (x > 0 && y > 0) { this.physics.addSpring(vertex, rows[y-1][x-1], stiffness); }
-                if (y > 0 && x < w-1) { this.physics.addSpring(vertex, rows[y-1][x+1], stiffness); }
-            }
-        }*/
         await Cloth.createMaterial(this.physics);
-        for (let i = 0; i < 1; i++) {
-            const cloth = new Cloth(this.physics, 80, 80);
+        /*await Leaf.createMaterial(this.physics);
+        for (let i = 0; i < 800; i++) {
+            const cloth = new Leaf(this.physics, 12, 12);
             this.cloths.push(cloth);
-            this.scene.add(cloth.object);
+            //this.scene.add(cloth.object);
         }
+        Leaf.createInstances();
+        this.scene.add(Leaf.object);*/
+
+        await Petal.createMaterial(this.physics);
+        for (let i = 0; i < 10000; i++) {
+            const cloth = new Petal(this.physics, 3, 3);
+            this.cloths.push(cloth);
+            //this.scene.add(cloth.object);
+        }
+        Petal.createInstances();
+        this.scene.add(Petal.object);
 
         await this.physics.bake();
 
         for (let i = 0; i < this.cloths.length; i++) {
-            const position = new THREE.Vector3(-2 - 1 * i, 4.0 + Math.random() * 3, -1.5 + Math.random() * 3);
-            const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, 0, 0));
-            await this.physics.resetObject(this.cloths[i].id, position);
+            const position = new THREE.Vector3(-8 - 20 * Math.random(), 1.0 + Math.random() * 8, -2.5 + Math.random() * 5);
+            const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI));
+            await this.physics.resetObject(this.cloths[i].id, position, quaternion);
         }
 
         this.springVisualizer = new SpringVisualizer(this.physics);
@@ -187,10 +190,10 @@ class App {
 
         const object = this.cloths[this.physics.frameNum % this.cloths.length];
         const position = this.physics.objects[object.id].position;
-        if (position.x > 30) {
-            const position = new THREE.Vector3(-2 - 6 * Math.random(), 4.0 + Math.random() * 3, -1.5 + Math.random() * 3);
-            const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, 0, 0));
-            await this.physics.resetObject(object.id, position)
+        if (position.x > 15) {
+            const position = new THREE.Vector3(-8, 1.0 + Math.random() * 8, -2.5 + Math.random() * 5);
+            const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI));
+            await this.physics.resetObject(object.id, position,quaternion)
         }
 
         await this.renderer.renderAsync(this.scene, this.camera);

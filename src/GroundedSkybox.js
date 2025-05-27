@@ -1,4 +1,5 @@
-import { Mesh, MeshBasicMaterial, SphereGeometry, Vector3 } from 'three';
+import { Mesh, MeshBasicNodeMaterial, MeshStandardNodeMaterial, SphereGeometry, Vector3 } from 'three/webgpu';
+import { Fn, texture, shadow, lights, vec3 } from 'three/tsl';
 
 /**
  * A ground-projected skybox.
@@ -28,7 +29,7 @@ export class GroundedSkybox extends Mesh {
      * @param {number} radius - The radius of the skybox. Must be large enough to ensure the scene's camera stays inside.
      * @param {number} [resolution=128] - The geometry resolution of the skybox.
      */
-    constructor( map, height, radius, resolution = 128 ) {
+    constructor( map, height, radius, resolution = 128, lightsObject ) {
 
         if ( height <= 0 || radius <= 0 || resolution <= 0 ) {
 
@@ -60,7 +61,15 @@ export class GroundedSkybox extends Mesh {
 
         pos.needsUpdate = true;
 
-        super( geometry, new MeshBasicMaterial( { map, depthWrite: true } ) );
+        const material = new MeshBasicNodeMaterial({map});
+        /*material.fragmentNode = Fn(() => {
+            return texture(map).mul(shadow(lightsObject.light, lightsObject.light.shadow));
+        })();*/
+        //material.lightsNode = lights([]);
+        //material.envNode = vec3(1);
+
+        super( geometry, material );
+        this.receiveShadow = true;
 
     }
 

@@ -58,6 +58,8 @@ export class Statue {
 
 
         this.object = new THREE.Mesh(geometry, material);
+        this.object.castShadow = true;
+        this.object.receiveShadow = true;
         this.bvh = new BVH(geometrySimple);
     }
 
