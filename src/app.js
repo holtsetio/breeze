@@ -9,7 +9,7 @@ import {Statue} from "./statue.js";
 
 import { dof } from 'three/addons/tsl/display/DepthOfFieldNode.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import hdri from "../assets/piazza_martin_lutero_8k.hdr";
+import hdri from "../assets/ninomaru_teien_8k.hdr";
 import {Cloth} from "./cloth.js";
 import {GroundedSkybox} from "./GroundedSkybox.js";
 import {Leaf} from "./leaf.js";
@@ -50,13 +50,13 @@ class App {
 
         this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 2000);
         //this.camera.position.set(32,32, -64);
-        this.camera.position.set(0, 10.0, -20);
+        this.camera.position.set(-3.6, 4.6, -4.95);
         this.camera.updateProjectionMatrix()
 
         this.scene = new THREE.Scene();
 
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.05;
+        this.renderer.toneMappingExposure = 0.85;
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -66,14 +66,14 @@ class App {
         //this.scene.background = hdriTexture;
         //this.scene.backgroundRotation.set(0,Math.PI,0);
         this.scene.environmentRotation.set(0,Math.PI,0);
-        this.scene.environmentIntensity = 0.5;
+        this.scene.environmentIntensity = 0.8;
 
 
         const lights = new Lights();
         this.scene.add(lights.object);
 
-        const skybox = new GroundedSkybox( hdriTexture, 5, 1000, 128, lights );
-        skybox.position.y = 5 - 0.01;
+        const skybox = new GroundedSkybox( hdriTexture, 10, 1000, 128, lights );
+        skybox.position.y = 10 - 0.01;
         skybox.rotation.y = Math.PI;
         this.scene.add( skybox );
 
@@ -82,8 +82,9 @@ class App {
         //this.scene.add(ball);
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.target.set(0,1,0);
+        this.controls.target.set(0,5.3,0);
         this.controls.enableDamping = true;
+        this.controls.autoRotate = true;
 
         await progressCallback(0.1)
 
@@ -126,8 +127,8 @@ class App {
         this.scene.add(Leaf.object);*/
 
         await Petal.createMaterial(this.physics);
-        for (let i = 0; i < 10000; i++) {
-            const cloth = new Petal(this.physics, 3, 3);
+        for (let i = 0; i < 30000; i++) {
+            const cloth = new Petal(this.physics, 4, 4);
             this.cloths.push(cloth);
             //this.scene.add(cloth.object);
         }
@@ -143,7 +144,7 @@ class App {
         }
 
         this.springVisualizer = new SpringVisualizer(this.physics);
-        //this.scene.add(this.springVisualizer.object);
+        this.scene.add(this.springVisualizer.object);
 
 
         /*
@@ -186,14 +187,24 @@ class App {
 
         this.controls.update(delta);
 
-        await this.physics.update(delta, elapsed);
+        this.springVisualizer.object.visible = conf.wireframe;
+        Petal.object.visible = !conf.wireframe;
+        this.controls.autoRotate = conf.rotateCamera;
 
-        const object = this.cloths[this.physics.frameNum % this.cloths.length];
-        const position = this.physics.objects[object.id].position;
-        if (position.x > 15) {
-            const position = new THREE.Vector3(-8, 1.0 + Math.random() * 8, -2.5 + Math.random() * 5);
-            const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI));
-            await this.physics.resetObject(object.id, position,quaternion)
+        if (conf.runSimulation) {
+            await this.physics.update(delta, elapsed);
+        }
+
+
+        const checksPerFrame = 100;
+        for (let i = 0; i < checksPerFrame; i++) {
+            const object = this.cloths[(this.physics.frameNum * checksPerFrame + i) % this.cloths.length];
+            const position = this.physics.objects[object.id].position;
+            if (position.x > 10) {
+                const position = new THREE.Vector3(-8, 1.0 + Math.random() * 8, -2.5 + Math.random() * 5);
+                const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI));
+                await this.physics.resetObject(object.id, position, quaternion)
+            }
         }
 
         await this.renderer.renderAsync(this.scene, this.camera);

@@ -17,7 +17,7 @@ const loadTexture = (file) => {
 }
 
 const clothWidth = 0.0;
-const segmentSize = 0.05;
+const segmentSize = 0.04;
 
 export class Petal {
     id = 0;
@@ -118,8 +118,8 @@ export class Petal {
                 if (y > 0) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x], stiffness); }
                 if (x > 0 && y > 0) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x-1], stiffness); }
                 if (y > 0 && x < this.widthSegments) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x+1], stiffness); }
-                //if (x > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y][x-2], stiffness); }
-                //if (y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x], stiffness); }
+                if (x > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y][x-2], stiffness); }
+                if (y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x], stiffness); }
 
                 /*for (let i = 3; i<=7; i *= 2) {
                     if (x > i-1) {
@@ -152,7 +152,7 @@ export class Petal {
         geometry.setAttribute("vertexOffset", vertexOffsetBuffer);
         geometry.instanceCount = Petal.objects.length;
         Petal.object = new THREE.Mesh(geometry, Petal.material);
-        Petal.object.count = Petal.objects.length;
+        //Petal.object.count = Petal.objects.length;
         Petal.object.frustumCulled = false;
         Petal.object.castShadow = true;
         Petal.object.receiveShadow = true;

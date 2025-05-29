@@ -5,6 +5,12 @@ import mobile from "is-mobile";
 class Conf {
     gui = null;
 
+    runSimulation = true;
+
+    wireframe = false;
+
+    rotateCamera = true;
+
     constructor() {
         if (mobile()) {
         }
@@ -35,6 +41,9 @@ class Conf {
             expanded: false,
         });
 
+        this.settings.addBinding(this, "rotateCamera");
+        this.settings.addBinding(this, "runSimulation");
+        this.settings.addBinding(this, "wireframe");
 
         this.gui = gui;
     }
