@@ -31,10 +31,8 @@ export class BVH {
     maxDepth = 0;
 
     constructor(geometry) {
-        console.log(geometry);
         this.geometry = geometry;
         this.bvh = new MeshBVH(geometry);
-        console.log(this.bvh);
         this.buildBuffers();
         this.buildShaderFunctions();
     }
@@ -105,9 +103,9 @@ export class BVH {
             this.triangleBuffer.set(i, "c", positionArray.slice(cIdx * 3, cIdx * 3 + 3));
         }
 
-        console.log(this.bvhBuffer);
-        console.log(this.triangleBuffer);
-        console.log(this.maxDepth);
+        //console.log(this.bvhBuffer);
+        //console.log(this.triangleBuffer);
+        //console.log(this.maxDepth);
     }
 
     buildShaderFunctions() {

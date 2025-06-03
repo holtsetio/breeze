@@ -3,7 +3,7 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 import {BufferAttribute, Vector2} from "three/webgpu";
 import {attribute, cross, Discard, Fn, If, instanceIndex, texture, transformNormalToView, vec3, vec4} from "three/tsl";
 
-import mapFile from "../assets/sakuraPetal.png";
+import mapFile from "../assets/mapleleaf.png";
 
 const textureLoader = new THREE.TextureLoader();
 const loadTexture = (file) => {
@@ -17,24 +17,50 @@ const loadTexture = (file) => {
 }
 
 const clothWidth = 0.0;
-const segmentSize = 0.04;
+const segmentSize = 0.05;
 
-export class Petal {
+export class LeafGeometry {
     id = 0;
     physics = null;
     widthSegments = 0;
     heightSegments = 0;
-    verletVertices = [];
+
+    vertexRows = [];
+    vertices = [];
+    springs = [];
+    instances = [];
+
+    material = null;
+    object = null;
 
     constructor(physics, widthSegments, heightSegments) {
-        Petal.objects.push(this);
+        //PetalGeometry.objects.push(this);
         this.physics = physics;
-        this.id = this.physics.addObject(this);
         this.widthSegments = widthSegments;
         this.heightSegments = heightSegments;
         this.buildVerletGeometry();
-        if (this.id > 0) { return; }
+        //this.buildGeometry();
+    }
+
+    async bake() {
+        await this.createMaterial();
         this.buildGeometry();
+    }
+
+    addInstance() {
+        const instance = this.physics.addObject();
+        const verletVertices = new Array(this.vertices.length);
+        this.vertices.forEach((vertex, index) => {
+            const { position, fixed } = vertex;
+            verletVertices[index] = this.physics.addVertex(instance.id, position, fixed);
+        });
+        this.springs.forEach((spring, index) => {
+            const vertex0 = verletVertices[spring.vertex0.id];
+            const vertex1 = verletVertices[spring.vertex1.id];
+            this.physics.addSpring(instance.id, vertex0, vertex1);
+        })
+        this.instances.push(instance);
+        return instance;
     }
 
     buildGeometry() {
@@ -42,9 +68,8 @@ export class Petal {
         boxGeometry.clearGroups();
         boxGeometry.deleteAttribute("uv");
         boxGeometry.deleteAttribute("normal");
-        console.log(boxGeometry);
 
-        const geometry = BufferGeometryUtils.mergeVertices(boxGeometry);
+        const geometry = new THREE.InstancedBufferGeometry().copy(BufferGeometryUtils.mergeVertices(boxGeometry));
 
         const vertexCount = geometry.attributes.position.count;
         const positionArray = geometry.attributes.position.array;
@@ -64,10 +89,10 @@ export class Petal {
             let uvx = xi * uvScale;
             let uvy = yi * uvScale;
 
-            vertexIdsArray[i*4+0] =  this.verletVertices[yi][xi].id;
-            vertexIdsArray[i*4+1] =  this.verletVertices[yi][xi+1].id;
-            vertexIdsArray[i*4+2] =  this.verletVertices[yi+1][xi].id;
-            vertexIdsArray[i*4+3] =  this.verletVertices[yi+1][xi+1].id;
+            vertexIdsArray[i*4+0] =  this.vertexRows[yi][xi].id;
+            vertexIdsArray[i*4+1] =  this.vertexRows[yi][xi+1].id;
+            vertexIdsArray[i*4+2] =  this.vertexRows[yi+1][xi].id;
+            vertexIdsArray[i*4+3] =  this.vertexRows[yi+1][xi+1].id;
             if (Math.abs(pz) < 0.001) {
                 if (Math.abs(px) - Math.abs(py) > 0.001) {
                     sideArray[i * 3 + 0] = Math.sign(px);
@@ -92,92 +117,90 @@ export class Petal {
         geometry.setAttribute("side", sideBuffer);
         geometry.setAttribute("uv", uvBuffer);
 
+        const vertexOffsetArray = new Uint32Array(this.instances.length);
+        for (let i = 0; i < this.instances.length; i++) {
+            vertexOffsetArray[i] = this.instances[i].vertexStart;
+        }
+        const vertexOffsetBuffer = new THREE.InstancedBufferAttribute(vertexOffsetArray, 1, false);
+        geometry.setAttribute("vertexOffset", vertexOffsetBuffer);
+
+        geometry.instanceCount = this.instances.length;
+
         this.geometry = geometry;
-        return;
-        this.object = new THREE.Mesh(geometry, Petal.material);
+        this.object = new THREE.Mesh(this.geometry, this.material);
         this.object.frustumCulled = false;
         this.object.castShadow = true;
         this.object.receiveShadow = true;
+    }
 
-        console.log(geometry);
+    addVertex(position, fixed) {
+        const id = this.vertices.length;
+        const vertex = { id, position, fixed };
+        this.vertices.push(vertex);
+        return vertex;
+    }
+
+    addSpring(vertex0, vertex1) {
+        const id = this.springs.length;
+        this.springs.push({ id, vertex0, vertex1 });
+        return id;
     }
 
     buildVerletGeometry() {
-        const stiffness = 0.25;
         for (let y = 0; y <= this.heightSegments; y++) {
             const row = [];
-            this.verletVertices.push(row);
+            this.vertexRows.push(row);
             for (let x = 0; x <= this.widthSegments; x++) {
-                const jitterx = (Math.random()*2-1) * segmentSize*0.2;
-                const jittery = (Math.random()*2-1) * segmentSize*0.2;
+                const jitterx = (Math.random() * 2 - 1) * segmentSize * 0.2;
+                const jittery = (Math.random() * 2 - 1) * segmentSize * 0.2;
                 const vertexPos = new THREE.Vector3(0, (x - this.widthSegments * 0.5) * segmentSize + jitterx, (y - this.heightSegments * 0.5) * segmentSize + jittery);
 
-                const vertex = this.physics.addVertex(this.id, vertexPos);
+                const vertex = this.addVertex(vertexPos);
                 row.push(vertex);
-                if (x > 0) { this.physics.addSpring(this.id, vertex, this.verletVertices[y][x-1], stiffness); }
-                if (y > 0) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x], stiffness); }
-                if (x > 0 && y > 0) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x-1], stiffness); }
-                if (y > 0 && x < this.widthSegments) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-1][x+1], stiffness); }
-                if (x > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y][x-2], stiffness); }
-                if (y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x], stiffness); }
+            }
+        }
+        for (let y = 0; y <= this.heightSegments; y++) {
+            for (let x = 0; x <= this.widthSegments; x++) {
+                const vertex = this.vertexRows[y][x];
+                if (x > 0) { this.addSpring(vertex, this.vertexRows[y][x-1]); }
+                if (y > 0) { this.addSpring(vertex, this.vertexRows[y-1][x]); }
+                if (x > 0 && y > 0) { this.addSpring(vertex, this.vertexRows[y-1][x-1]); }
+                if (y > 0 && x < this.widthSegments) { this.addSpring(vertex, this.vertexRows[y-1][x+1]); }
+                if (x > 1) { this.addSpring(vertex, this.vertexRows[y][x-2]); }
+                if (y > 1) { this.addSpring(vertex, this.vertexRows[y-2][x]); }
 
                 /*for (let i = 3; i<=7; i *= 2) {
                     if (x > i-1) {
-                        this.physics.addSpring(this.id, vertex, this.verletVertices[y][x - i], stiffness);
+                        this.addSpring(vertex, this.vertexRows[y][x - i]);
                     }
                     if (y > i-1) {
-                        this.physics.addSpring(this.id, vertex, this.verletVertices[y - i][x], stiffness);
+                        this.addSpring(vertex, this.vertexRows[y - i][x]);
                     }
                 }*/
 
-                //if (x > 1 && y > 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x-2], stiffness); }
-                //if (y > 1 && x < this.widthSegments - 1) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-2][x+2], stiffness); }
+                //if (x > 1 && y > 1) { this.addSpring(vertex, this.vertexRows[y-2][x-2]); }
+                //if (y > 1 && x < this.widthSegments - 1) { this.addSpring(vertex, this.vertexRows[y-2][x+2]); }
 
-                //if (x > 2 && y > 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x-3], stiffness); }
-                //if (y > 2 && x < this.widthSegments - 2) { this.physics.addSpring(this.id, vertex, this.verletVertices[y-3][x+3], stiffness); }
+                //if (x > 2 && y > 2) { this.addSpring(vertex, this.vertexRows[y-3][x-3]); }
+                //if (y > 2 && x < this.widthSegments - 2) { this.addSpring(vertex, this.vertexRows[y-3][x+3]); }
             }
         }
     }
 
-    static objects = [];
-
-    static async createInstances() {
-        const geometry = new THREE.InstancedBufferGeometry().copy(Petal.objects[0].geometry);
-        const vertexOffsetArray = new Uint32Array(Petal.objects.length);
-        for (let i = 0; i < Petal.objects.length; i++) {
-            vertexOffsetArray[i] = Petal.objects[i].verletVertices[0][0].id;
-        }
-        const vertexOffsetBuffer = new THREE.InstancedBufferAttribute(vertexOffsetArray, 1, false);
-        console.log(vertexOffsetArray);
-        geometry.setAttribute("vertexOffset", vertexOffsetBuffer);
-        geometry.instanceCount = Petal.objects.length;
-        Petal.object = new THREE.Mesh(geometry, Petal.material);
-        //Petal.object.count = Petal.objects.length;
-        Petal.object.frustumCulled = false;
-        Petal.object.castShadow = true;
-        Petal.object.receiveShadow = true;
-        console.log(Petal.object);
-    }
-
-    static createGeometry() {
-
-    }
-
-    static async createMaterial(physics) {
+    async createMaterial() {
         const map = await loadTexture(mapFile);
         map.wrapS = THREE.ClampToEdgeWrapping;
         map.wrapT = THREE.ClampToEdgeWrapping;
 
         const material = new THREE.MeshPhysicalNodeMaterial({
             transparent: true, roughness: 0.8,
-            roughness: 1.0,
             //map,
             //alphaMap: map,
         });
         material.colorNode = Fn(() => {
             const color = texture(map);
             If(color.a.lessThan(0.9), () => {
-               Discard();
+                Discard();
             });
             return color.mul(vec4(vec3(0.7), 1));
         })();
@@ -195,10 +218,10 @@ export class Petal {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
             const vertexOffset = attribute( 'vertexOffset' );
-            const v0 = physics.vertexBuffer.element( vertexIds.x.add(vertexOffset) ).get("position").toVar();
-            const v1 = physics.vertexBuffer.element( vertexIds.y.add(vertexOffset) ).get("position").toVar();
-            const v2 = physics.vertexBuffer.element( vertexIds.z.add(vertexOffset) ).get("position").toVar();
-            const v3 = physics.vertexBuffer.element( vertexIds.w.add(vertexOffset) ).get("position").toVar();
+            const v0 = this.physics.vertexBuffer.element( vertexIds.x.add(vertexOffset) ).get("position").toVar();
+            const v1 = this.physics.vertexBuffer.element( vertexIds.y.add(vertexOffset) ).get("position").toVar();
+            const v2 = this.physics.vertexBuffer.element( vertexIds.z.add(vertexOffset) ).get("position").toVar();
+            const v3 = this.physics.vertexBuffer.element( vertexIds.w.add(vertexOffset) ).get("position").toVar();
 
             const top = v0.add( v1 );
             const right = v1.add( v3 );
@@ -208,19 +231,15 @@ export class Petal {
             const tangent = right.sub( left ).normalize().toVar();
             const bitangent = bottom.sub( top ).normalize().toVar();
             const n = cross( tangent, bitangent );
-            //const n = cross(v1.sub(v0),v3.sub(v1)).add(cross(v3.sub(v1),v2.sub(v3))).add(cross(v2.sub(v3),v0.sub(v2))).add(cross(v0.sub(v2),v1.sub(v0))).normalize();
 
             const normal = tangent.mul(side.x).add(bitangent.mul(side.y)).add(n.mul(side.z)).normalize().toVar();
-
-            // send the normalView from the vertex shader to the fragment shader
-            //material.normalNode = transformNormalToView( normal ).toVarying().normalize().debug();
             vNormal.assign(transformNormalToView(normal));
 
             return v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth));
         } )();
-        material.normalNode = vNormal.normalize().debug();
+        material.normalNode = vNormal.normalize();
 
-        Petal.material = material;
+        this.material = material;
 
     }
 

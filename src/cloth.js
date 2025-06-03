@@ -57,7 +57,6 @@ export class Cloth {
         boxGeometry.clearGroups();
         boxGeometry.deleteAttribute("uv");
         boxGeometry.deleteAttribute("normal");
-        console.log(boxGeometry);
 
         const geometry = BufferGeometryUtils.mergeVertices(boxGeometry);
 
@@ -110,8 +109,6 @@ export class Cloth {
 
         this.object = new THREE.Mesh(geometry, Cloth.material);
         this.object.frustumCulled = false;
-
-        console.log(geometry);
     }
 
     buildVerletGeometry() {

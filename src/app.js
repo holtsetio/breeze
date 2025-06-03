@@ -12,9 +12,9 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import hdri from "../assets/ninomaru_teien_1k.hdr";
 import {Cloth} from "./cloth.js";
 import {GroundedSkybox} from "./GroundedSkybox.js";
-import {Leaf} from "./leaf.js";
+import {LeafGeometry} from "./leafGeometry.js";
 import {Lights} from "./lights.js";
-import {Petal} from "./petal.js";
+import {PetalGeometry} from "./petalGeometry.js";
 
 const loadHdr = async (file) => {
     const texture = await new Promise(resolve => {
@@ -104,7 +104,7 @@ class App {
             });
 
             return attribute("position").add(position);
-        })().debug();
+        })();
         const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.01,2), ballMaterial);
         ball.frustumCulled = false;
         this.scene.add(ball);
@@ -117,23 +117,31 @@ class App {
         conf.settings.addBinding( this.physics, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
         await Cloth.createMaterial(this.physics);
-        /*await Leaf.createMaterial(this.physics);
+        /*await LeafGeometry.createMaterial(this.physics);
         for (let i = 0; i < 800; i++) {
-            const cloth = new Leaf(this.physics, 12, 12);
+            const cloth = new LeafGeometry(this.physics, 12, 12);
             this.cloths.push(cloth);
             //this.scene.add(cloth.object);
         }
-        Leaf.createInstances();
-        this.scene.add(Leaf.object);*/
+        LeafGeometry.createInstances();
+        this.scene.add(LeafGeometry.object);*/
 
-        await Petal.createMaterial(this.physics);
+        const petalGeometry = new PetalGeometry(this.physics, 4, 4);
         for (let i = 0; i < 30000; i++) {
-            const cloth = new Petal(this.physics, 4, 4);
-            this.cloths.push(cloth);
-            //this.scene.add(cloth.object);
+            const petal = petalGeometry.addInstance();
+            this.cloths.push(petal);
         }
-        Petal.createInstances();
-        this.scene.add(Petal.object);
+        await petalGeometry.bake();
+        this.scene.add(petalGeometry.object);
+        this.petalGeometry = petalGeometry;
+
+        const leafGeometry = new LeafGeometry(this.physics, 10, 10);
+        for (let i = 0; i < 100; i++) {
+            const leaf = leafGeometry.addInstance();
+            this.cloths.push(leaf);
+        }
+        await leafGeometry.bake();
+        this.scene.add(leafGeometry.object);
 
         await this.physics.bake();
 
@@ -188,7 +196,7 @@ class App {
         this.controls.update(delta);
 
         this.springVisualizer.object.visible = conf.wireframe;
-        Petal.object.visible = !conf.wireframe;
+        this.petalGeometry.object.visible = !conf.wireframe;
         this.controls.autoRotate = conf.rotateCamera;
 
         if (conf.runSimulation) {

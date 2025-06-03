@@ -48,19 +48,18 @@ export class VerletPhysics {
         this.renderer = renderer;
     }
 
-    addObject(object) {
+    addObject() {
         const id = this.objects.length;
-        const objectData = {
+        const object = {
             id,
-            object,
             position: new THREE.Vector3(),
             vertexStart: this.vertices.length,
             vertexCount: 0,
             springStart: this.springs.length,
             springCount: 0,
         };
-        this.objects.push(objectData);
-        return id;
+        this.objects.push(object);
+        return object;
     }
 
     addCollider(collider) {
@@ -143,7 +142,6 @@ export class VerletPhysics {
         });
 
         this.influencerData = instancedArray(influencerArray, "int");
-        console.log(influencerArray);
 
         this.springs.forEach((spring)=>{
             const { id, vertex0, vertex1, restLength } = spring;
@@ -173,7 +171,7 @@ export class VerletPhysics {
             const dist = delta.length().max(0.000001).toVar();
             const force = (dist - restLength) * stiffness * delta * 0.5 / dist;
             this.springForceData.element(instanceIndex).assign(force);
-        })().debug().compute(this.springCount);
+        })().compute(this.springCount);
 
         this.kernels.computeVertexForces = Fn(()=>{
             const vertex = this.vertexBuffer.element(instanceIndex);
@@ -221,7 +219,7 @@ export class VerletPhysics {
 
             this.vertexBuffer.element(instanceIndex).get("force").assign(forceSet);
             this.vertexBuffer.element(instanceIndex).get("position").addAssign(force);
-        })().debug().compute(this.vertexCount);
+        })().compute(this.vertexCount);
 
         this.kernels.readPositions = Fn(()=>{
             const firstVertex = this.firstVertexIdData.element(instanceIndex);
@@ -248,8 +246,6 @@ export class VerletPhysics {
         await this.renderer.computeAsync(this.kernels.resetVertices); //call once to compile
 
         this.isBaked = true;
-        console.log(this.vertexBuffer);
-        console.log(this.springBuffer);
     }
 
     async readPositions() {

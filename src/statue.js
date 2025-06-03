@@ -41,7 +41,6 @@ export class Statue {
 
         const textures = [VenusColorMap, VenusRoughnessMap, VenusNormalMap];
         const [map, roughnessMap, normalMap] = await Promise.all(textures.map(loadTexture));
-        console.log(map);
         const material = new THREE.MeshStandardNodeMaterial({
             map, roughnessMap, normalMap,
         })
@@ -51,7 +50,8 @@ export class Statue {
         geometry.rotateY(Math.PI * -0.5);
 
         const objSimple = await loadObj(VenusSimple);
-        console.log(objSimple);
+        //console.log(obj);
+        //console.log(objSimple);
         const geometrySimple = objSimple.children[0].geometry;
         geometrySimple.scale(25,25,25);
         geometrySimple.rotateY(Math.PI * -0.5);
