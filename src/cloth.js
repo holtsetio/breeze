@@ -177,10 +177,10 @@ export class Cloth {
         material.positionNode = Fn( ( { } ) => {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
-            const v0 = physics.positionData.element( vertexIds.x ).toVar();
-            const v1 = physics.positionData.element( vertexIds.y ).toVar();
-            const v2 = physics.positionData.element( vertexIds.z ).toVar();
-            const v3 = physics.positionData.element( vertexIds.w ).toVar();
+            const v0 = physics.vertexBuffer.element( vertexIds.x ).get("position").toVar();
+            const v1 = physics.vertexBuffer.element( vertexIds.y ).get("position").toVar();
+            const v2 = physics.vertexBuffer.element( vertexIds.z ).get("position").toVar();
+            const v3 = physics.vertexBuffer.element( vertexIds.w ).get("position").toVar();
 
             const top = v0.add( v1 );
             const right = v1.add( v3 );

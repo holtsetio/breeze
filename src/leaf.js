@@ -191,10 +191,10 @@ export class Leaf {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
             const vertexOffset = attribute( 'vertexOffset' );
-            const v0 = physics.positionData.element( vertexIds.x.add(vertexOffset) ).toVar();
-            const v1 = physics.positionData.element( vertexIds.y.add(vertexOffset) ).toVar();
-            const v2 = physics.positionData.element( vertexIds.z.add(vertexOffset) ).toVar();
-            const v3 = physics.positionData.element( vertexIds.w.add(vertexOffset) ).toVar();
+            const v0 = physics.vertexBuffer.element( vertexIds.x.add(vertexOffset) ).get("position").toVar();
+            const v1 = physics.vertexBuffer.element( vertexIds.y.add(vertexOffset) ).get("position").toVar();
+            const v2 = physics.vertexBuffer.element( vertexIds.z.add(vertexOffset) ).get("position").toVar();
+            const v3 = physics.vertexBuffer.element( vertexIds.w.add(vertexOffset) ).get("position").toVar();
 
             const top = v0.add( v1 );
             const right = v1.add( v3 );

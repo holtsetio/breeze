@@ -14,11 +14,13 @@ export class SpringVisualizer {
         this.vertexIndexBuffer = new THREE.StorageBufferAttribute(new Uint32Array([0,1]), 1, Uint32Array);
         this.vertexIndexAttribute = storage(this.vertexIndexBuffer, "int", 2).toAttribute();
 
-        this.material = new THREE.LineBasicNodeMaterial();
+        this.material = new THREE.LineBasicNodeMaterial({ color: 0 });
         this.material.positionNode = Fn( () => {
-            const vertices = this.physics.springVertexData.element(instanceIndex);
-            const ptr = select(this.vertexIndexAttribute.equal(0), vertices.x, vertices.y);
-            return this.physics.positionData.element(ptr).xyz;
+            const spring = this.physics.springBuffer.element(instanceIndex);
+            const v0id = spring.get("vertex0");
+            const v1id = spring.get("vertex1");
+            const ptr = select(this.vertexIndexAttribute.equal(0), v0id, v1id);
+            return this.physics.vertexBuffer.element(ptr).get("position");
         } )();
 
         this.geometry = new THREE.InstancedBufferGeometry();

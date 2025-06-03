@@ -15,6 +15,7 @@ import {
     vec3, dot, vec4, Return, smoothstep
 } from "three/tsl";
 import {triNoise3Dvec} from "../common/noise.js";
+import {StructuredArray} from "../common/structuredArray.js";
 
 export class VerletPhysics {
     renderer = null;
@@ -70,24 +71,24 @@ export class VerletPhysics {
         if (this.isBaked) {
             console.error("Can't add any more vertices!");
         }
-        const { x,y,z } = position;
-        const id = this.vertices.length;
-        const value = { x, y, z, w: fixed ? 0 : 1 };
-        const springs = [];
-        const vertex = { id, value, springs, fixed };
+        const vertex = new THREE.Vector3().copy(position);
+        vertex.id = this.vertices.length;
+        vertex.springs = [];
+        vertex.fixed = fixed;
         this.vertices.push(vertex);
         this.objects[objectId].vertexCount++;
         return vertex;
     }
 
-    addSpring(objectId, vertex0, vertex1, stiffness, restLengthFactor = 1.0) {
+    addSpring(objectId, vertex0, vertex1) {
         if (this.isBaked) {
             console.error("Can't add any more springs!");
         }
         const id = this.springs.length;
         vertex0.springs.push({ id, sign: 1 });
         vertex1.springs.push({ id, sign: -1 });
-        this.springs.push({ id, vertex0, vertex1, stiffness, restLengthFactor });
+        const restLength = vertex0.distanceTo(vertex1);
+        this.springs.push({ id, vertex0, vertex1, restLength });
         this.objects[objectId].springCount++;
         return id;
     }
@@ -104,43 +105,52 @@ export class VerletPhysics {
         this.uniforms.stiffness = uniform(this.stiffness);
         this.uniforms.friction = uniform(this.friction);
 
-        const positionArray = new Float32Array(this.vertexCount * 4);
-        const influencerPtrArray = new Uint32Array(this.vertexCount * 2);
+        const vertexStruct = {
+            isFixed: "uint",
+            springCount: "uint",
+            springPtr: "uint",
+            position: "vec3",
+            initialPosition: "vec3",
+            force: "vec3",
+        };
+        this.vertexBuffer = new StructuredArray(vertexStruct, this.vertexCount, "verletVertices");
+
+        const springStruct = {
+            restLength: "float",
+            vertex0: "uint",
+            vertex1: "uint",
+            dummy: "float",
+        };
+        this.springBuffer = new StructuredArray(springStruct, this.springCount, "verletSprings");
+
         const influencerArray = new Int32Array(this.springCount * 2);
         let influencerPtr = 0;
-        this.vertices.forEach((v)=> {
-            const {id, value, springs, fixed} = v;
-            positionArray[id * 4 + 0] = value.x;
-            positionArray[id * 4 + 1] = value.y;
-            positionArray[id * 4 + 2] = value.z;
-            positionArray[id * 4 + 3] = value.w;
-            influencerPtrArray[id * 2 + 0] = influencerPtr;
+        this.vertices.forEach((vertex)=> {
+            const {id, springs, fixed} = vertex;
+            this.vertexBuffer.set(id, "position", vertex);
+            this.vertexBuffer.set(id, "initialPosition", vertex);
+            this.vertexBuffer.set(id, "isFixed", fixed ? 1 : 0);
+            this.vertexBuffer.set(id, "springPtr", influencerPtr);
             if (!fixed) {
-                influencerPtrArray[id * 2 + 1] = springs.length;
-                springs.forEach(s => {
-                    influencerArray[influencerPtr] = (s.id+1) * s.sign;
-                    influencerPtr++;
+                this.vertexBuffer.set(id, "springCount", springs.length);
+                springs.forEach((s, index) => {
+                    //if (index === 0) {
+                        influencerArray[influencerPtr] = (s.id + 1) * s.sign;
+                        influencerPtr++;
+                    //}
                 });
             }
         });
-        this.initialPositionData = instancedArray(positionArray, "vec4");
-        this.positionData = instancedArray(positionArray, "vec4");
-        this.forceData = instancedArray(this.vertexCount, "vec3");
-        this.influencerPtrData = instancedArray(influencerPtrArray, "uvec2");
-        this.influencerData = instancedArray(influencerArray, "int");
 
-        const springVertexArray = new Uint32Array(this.springCount * 2);
-        const springParamsArray = new Float32Array(this.springCount * 3);
+        this.influencerData = instancedArray(influencerArray, "int");
+        console.log(influencerArray);
+
         this.springs.forEach((spring)=>{
-            const { id, vertex0, vertex1, stiffness, restLengthFactor } = spring;
-            springVertexArray[id * 2 + 0] = vertex0.id;
-            springVertexArray[id * 2 + 1] = vertex1.id;
-            springParamsArray[id * 3 + 0] = stiffness;
-            springParamsArray[id * 3 + 1] = 0;
-            springParamsArray[id * 3 + 2] = restLengthFactor;
+            const { id, vertex0, vertex1, restLength } = spring;
+            this.springBuffer.set(id, "vertex0", vertex0.id);
+            this.springBuffer.set(id, "vertex1", vertex1.id);
+            this.springBuffer.set(id, "restLength", restLength);
         });
-        this.springVertexData = instancedArray(springVertexArray, "uvec2");
-        this.springParamsData = instancedArray(springParamsArray, "vec3");
         this.springForceData = instancedArray(this.springCount, 'vec3');
 
         const firstVertexIdArray = new Uint32Array(this.objectCount);
@@ -151,78 +161,71 @@ export class VerletPhysics {
         this.firstVertexIdData = instancedArray(firstVertexIdArray, "uint");
         this.objectPositionData = instancedArray(this.objectCount, "vec3");
 
-        const initSpringLengths = Fn(()=>{
-            const vertices = this.springVertexData.element(instanceIndex);
-            const v0 = this.positionData.element(vertices.x).xyz;
-            const v1 = this.positionData.element(vertices.y).xyz;
-            const params = this.springParamsData.element(instanceIndex);
-            const restLengthFactor = params.z;
-            const restLength = params.y;
-            restLength.assign(distance(v0, v1) * restLengthFactor);
-        })().compute(this.springCount);
-        await this.renderer.computeAsync(initSpringLengths);
-
         this.kernels.computeSpringForces = Fn(()=>{
-            const vertices = this.springVertexData.element(instanceIndex);
-            const v0 = this.positionData.element(vertices.x).toVec3();
-            const v1 = this.positionData.element(vertices.y).toVec3();
-            const params = this.springParamsData.element(instanceIndex);
+            const spring = this.springBuffer.element(instanceIndex);
+            const v0id = spring.get("vertex0");
+            const v1id = spring.get("vertex1");
+            const restLength = spring.get("restLength");
             const stiffness = this.uniforms.stiffness; //params.x;
-            const restLength = params.y;
+            const v0 = this.vertexBuffer.element(v0id).get("position");
+            const v1 = this.vertexBuffer.element(v1id).get("position");
             const delta = (v1 - v0).toVar();
             const dist = delta.length().max(0.000001).toVar();
             const force = (dist - restLength) * stiffness * delta * 0.5 / dist;
             this.springForceData.element(instanceIndex).assign(force);
-        })().compute(this.springCount);
+        })().debug().compute(this.springCount);
 
         this.kernels.computeVertexForces = Fn(()=>{
-            const position = this.positionData.element(instanceIndex).toVar();
-            If(position.w.greaterThan(0.5), ()=>{
-                const influencerPtr = this.influencerPtrData.element(instanceIndex).toVar();
-                const ptrStart = influencerPtr.x.toVar();
-                const ptrEnd = ptrStart.add(influencerPtr.y).toVar();
+            const vertex = this.vertexBuffer.element(instanceIndex);
 
-                const force = this.forceData.element(instanceIndex).toVar();
-                force.mulAssign(this.uniforms.dampening);
-                Loop({ start: ptrStart, end: ptrEnd,  type: 'uint', condition: '<' }, ({ i })=>{
-                    const springPtr = this.influencerData.element(i);
-                    const springForce = this.springForceData.element(uint(springPtr.abs()) - uint(1));
-                    const factor = select(springPtr.greaterThan(0), 1.0, -1.0);
-                    force.addAssign(springForce * factor);
-                });
-                force.y.subAssign(0.000001);
-                const noise = triNoise3Dvec(position.xyz.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
-                const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
-                force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
-
-                const noise2 = triNoise3Dvec(position.xyz.mul(0.2), 0.5, this.uniforms.time).sub(vec3(0.285, 0.285, 0.285)).mul(0.0001);
-                force.addAssign(noise2);
-
-                const projectedPoint = position.xyz.add(force).toVar();
-                If (projectedPoint.y.lessThan(0), () => {
-                    force.y.subAssign(projectedPoint.y);
-                    projectedPoint.y.assign(0);
-                });
-
-                const forceMagSquared = dot(force.mul(1.001), force.mul(1.001)).toVar();
-                const [closestPoint, closestNormal] = this.colliders[0].findClosestPoint(projectedPoint, forceMagSquared);
-
-                const closestPointDelta = closestPoint.sub(projectedPoint).toVar("closestPointDelta");
-                const forceSet = force.toVar();
-                If(dot(closestPointDelta, closestNormal).greaterThan(0), () => {
-                   force.assign(closestPoint.sub(position.xyz));
-                   forceSet.assign(force.mul(this.uniforms.friction.oneMinus()));
-                });
-
-                this.forceData.element(instanceIndex).assign(forceSet);
-                this.positionData.element(instanceIndex).addAssign(force);
-
+            If(vertex.get("isFixed").greaterThan(uint(0)), ()=> {
+                Return();
             });
+
+            const position = vertex.get("position").toVar();
+            const ptrStart = vertex.get("springPtr").toVar();
+            const springCount = vertex.get("springCount").toVar();
+            const ptrEnd = ptrStart.add(springCount).toVar();
+
+            const force = vertex.get("force").toVar();
+            force.mulAssign(this.uniforms.dampening);
+            Loop({ start: ptrStart, end: ptrEnd,  type: 'uint', condition: '<' }, ({ i })=>{
+                const springPtr = this.influencerData.element(i);
+                const springForce = this.springForceData.element(uint(springPtr.abs()) - uint(1));
+                const factor = select(springPtr.greaterThan(0), 1.0, -1.0);
+                force.addAssign(springForce * factor);
+            });
+            force.y.subAssign(0.000001);
+            const noise = triNoise3Dvec(position.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
+            const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
+            force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
+
+            const noise2 = triNoise3Dvec(position.mul(0.2), 0.5, this.uniforms.time).sub(vec3(0.285, 0.285, 0.285)).mul(0.0001);
+            force.addAssign(noise2);
+
+            const projectedPoint = position.add(force).toVar();
+            If (projectedPoint.y.lessThan(0), () => {
+                force.y.subAssign(projectedPoint.y);
+                projectedPoint.y.assign(0);
+            });
+
+            const forceMagSquared = dot(force.mul(1.001), force.mul(1.001)).toVar();
+            const [closestPoint, closestNormal] = this.colliders[0].findClosestPoint(projectedPoint, forceMagSquared);
+
+            const closestPointDelta = closestPoint.sub(projectedPoint).toVar("closestPointDelta");
+            const forceSet = force.toVar();
+            If(dot(closestPointDelta, closestNormal).greaterThan(0), () => {
+                force.assign(closestPoint.sub(position));
+                forceSet.assign(force.mul(this.uniforms.friction.oneMinus()));
+            });
+
+            this.vertexBuffer.element(instanceIndex).get("force").assign(forceSet);
+            this.vertexBuffer.element(instanceIndex).get("position").addAssign(force);
         })().debug().compute(this.vertexCount);
 
         this.kernels.readPositions = Fn(()=>{
             const firstVertex = this.firstVertexIdData.element(instanceIndex);
-            const position = this.positionData.element(firstVertex);
+            const position = this.vertexBuffer.element(firstVertex).get("position");
             this.objectPositionData.element(instanceIndex).assign(position);
         })().compute(this.objects.length);
         //await this.renderer.computeAsync(this.kernels.readPositions); //call once to compile
@@ -235,15 +238,18 @@ export class VerletPhysics {
                 Return();
             });
             const vertexId = this.uniforms.resetVertexStart.add(instanceIndex).toVar();
-            const initialPosition = this.initialPositionData.element(vertexId).toVar();
-            const transformedPosition = this.uniforms.resetMatrix.mul(vec4(initialPosition.xyz, 1)).xyz.toVar();
-            this.positionData.element(vertexId).assign(vec4(transformedPosition.xyz, initialPosition.w));
-            this.forceData.element(vertexId).assign(0);
+            const vertex = this.vertexBuffer.element(vertexId);
+            const initialPosition = vertex.get("initialPosition").toVar();
+            const transformedPosition = this.uniforms.resetMatrix.mul(vec4(initialPosition, 1)).xyz.toVar();
+            vertex.get("position").assign(transformedPosition);
+            vertex.get("force").assign(0);
         })().compute(1);
         //console.time("resetVertices");
         await this.renderer.computeAsync(this.kernels.resetVertices); //call once to compile
 
         this.isBaked = true;
+        console.log(this.vertexBuffer);
+        console.log(this.springBuffer);
     }
 
     async readPositions() {

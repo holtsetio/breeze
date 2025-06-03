@@ -9,7 +9,7 @@ import {Statue} from "./statue.js";
 
 import { dof } from 'three/addons/tsl/display/DepthOfFieldNode.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import hdri from "../assets/ninomaru_teien_8k.hdr";
+import hdri from "../assets/ninomaru_teien_1k.hdr";
 import {Cloth} from "./cloth.js";
 import {GroundedSkybox} from "./GroundedSkybox.js";
 import {Leaf} from "./leaf.js";
