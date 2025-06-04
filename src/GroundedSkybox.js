@@ -1,5 +1,6 @@
 import { Mesh, MeshBasicNodeMaterial, MeshStandardNodeMaterial, SphereGeometry, Vector3 } from 'three/webgpu';
-import { Fn, texture, shadow, lights, vec3 } from 'three/tsl';
+import { Fn, texture, shadow, lights, vec3, uv, uniform } from 'three/tsl';
+import {conf} from "./conf.js";
 
 /**
  * A ground-projected skybox.
@@ -62,6 +63,11 @@ export class GroundedSkybox extends Mesh {
         pos.needsUpdate = true;
 
         const material = new MeshBasicNodeMaterial({map});
+        const tLevel = uniform(0, "float");
+        material.colorNode = Fn(() => {
+            return texture(map, uv(), tLevel);
+        })();
+        conf.settings.addBinding(tLevel, "value", { min: 0, max: 10, step: 0.01 });
         /*material.fragmentNode = Fn(() => {
             return texture(map).mul(shadow(lightsObject.light, lightsObject.light.shadow));
         })();*/

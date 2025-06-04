@@ -9,18 +9,19 @@ import {Statue} from "./statue.js";
 
 import { dof } from 'three/addons/tsl/display/DepthOfFieldNode.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import hdri from "../assets/ninomaru_teien_1k.hdr";
+import hdri from "../assets/ninomaru_teien_4k.jpg";
 import {Cloth} from "./cloth.js";
 import {GroundedSkybox} from "./GroundedSkybox.js";
 import {LeafGeometry} from "./leafGeometry.js";
 import {Lights} from "./lights.js";
 import {PetalGeometry} from "./petalGeometry.js";
+import {loadGainmap} from "./common/gainmap.js";
 
 const loadHdr = async (file) => {
     const texture = await new Promise(resolve => {
         new RGBELoader().load(file, result => {
             result.mapping = THREE.EquirectangularReflectionMapping;
-            result.colo
+
             resolve(result);
         });
     });
@@ -48,7 +49,7 @@ class App {
         conf.init();
         this.info = new Info();
 
-        this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 2000);
+        this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 200);
         //this.camera.position.set(32,32, -64);
         this.camera.position.set(-3.6, 4.6, -4.95);
         this.camera.updateProjectionMatrix()
@@ -60,7 +61,8 @@ class App {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        const hdriTexture = await loadHdr(hdri);
+        const hdriTexture = await loadGainmap(hdri);
+        hdriTexture.generateMipmaps = true;
 
         this.scene.environment = hdriTexture;
         //this.scene.background = hdriTexture;
@@ -72,7 +74,7 @@ class App {
         const lights = new Lights();
         this.scene.add(lights.object);
 
-        const skybox = new GroundedSkybox( hdriTexture, 10, 1000, 128, lights );
+        const skybox = new GroundedSkybox( hdriTexture, 10, 100, 96, lights );
         skybox.position.y = 10 - 0.01;
         skybox.rotation.y = Math.PI;
         this.scene.add( skybox );
