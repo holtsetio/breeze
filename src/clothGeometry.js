@@ -15,7 +15,6 @@ import {
     vec4
 } from "three/tsl";
 
-import aoMapFile from "../assets/Fabric_Lace_038_ambientOcclusion.png";
 import colorMapFile from "../assets/Fabric_Lace_038_basecolor.png";
 import normalMapFile from "../assets/Fabric_Lace_038_normal.png";
 import opacityMapFile from "../assets/Fabric_Lace_038_opacity.png";
@@ -93,7 +92,7 @@ export class ClothGeometry {
         const sideArray = new Float32Array(3 * vertexCount);
         const uvArray = new Float32Array(2 * vertexCount);
 
-        const uvScale = 1.0 / (this.widthSegments - 1);
+        const uvScale = 3.0 / (this.widthSegments - 1);
         for (let i=0; i<vertexCount; i++) {
             const px = positionArray[i * 3 + 0];
             const py = positionArray[i * 3 + 1];
@@ -205,13 +204,12 @@ export class ClothGeometry {
     }
 
     async createMaterial() {
-        const files = [aoMapFile, colorMapFile, normalMapFile, roughnessMapFile, opacityMapFile];
-        const [aoMap, colorMap, normalMap, roughnessMap, alphaMap] = await Promise.all(files.map(loadTexture));
+        const files = [colorMapFile, normalMapFile, roughnessMapFile, opacityMapFile];
+        const [ colorMap, normalMap, roughnessMap, alphaMap] = await Promise.all(files.map(loadTexture));
 
         const material = new THREE.MeshPhysicalNodeMaterial({
             transparent: true,
             map: colorMap,
-            aoMap,
             normalMap,
             roughnessMap,
             //alphaMap,

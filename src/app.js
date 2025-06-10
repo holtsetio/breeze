@@ -43,7 +43,7 @@ const sceneConfigs = {
         geometryClass: ClothGeometry,
         instanceCount: 1,
         cutoffPosition: 30,
-        friction: 0.35,
+        friction: 0.25,
         positionFunction: (isInitial = false) => { return new THREE.Vector3(-14, 4.5, -0.5 + Math.random() * 1); },
         rotationFunction: () => { return new THREE.Quaternion() },
         force: (position, time) => {

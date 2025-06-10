@@ -21,8 +21,8 @@ export class Info {
         });
         this.textBlade = info.addBlade({
             view: "infodump",
-            content: "Realtime MLS-MPM simulation in the Browser, using WebGPU and written in [ThreeJS](https://threejs.org) TSL. Inspired by the works of [Refik Anadol](https://refikanadol.com/).\n\n" +
-                "MLS-MPM implementation is heavily based on [WebGPU-Ocean](https://github.com/matsuoka-601/WebGPU-Ocean) by [matsuoka-601](https://github.com/matsuoka-601).\n\n" +
+            content: "Realtime verlet-based cloth simulation in the Browser, using WebGPU and written in [ThreeJS](https://threejs.org) TSL.\n\n" +
+                "View the source code [here](https://github.com/holtsetio/breeze/).\n\n" +
                 "[> Other experiments](https://holtsetio.com)",
             markdown: true,
         })
@@ -34,8 +34,11 @@ export class Info {
         credits.element.style.marginLeft = '0px';
         credits.addBlade({
             view: "infodump",
-            content: "[HDRi background](https://polyhaven.com/a/autumn_field_puresky) by Jarod Guest and Sergej Majboroda on [Polyhaven.com](https://polyhaven.com).\n\n" +
-                "[Concrete plaster wall texture](https://www.texturecan.com/details/216/) by [texturecan.com](https://texturecan.com).\n\n",
+            content: "[Venus de Milo model](https://sketchfab.com/3d-models/venus-de-milo-903aa69c782a46619615e6df382c8045) by [chiwei](https://sketchfab.com/chiwei2333) and [Lanzi Luo](https://sketchfab.com/Thunk3D-Nancy).\n\n" +
+                "[Qwantani Noon](https://polyhaven.com/a/qwantani_noon) HDRi background by [Greg Zaal](https://gregzaal.com/) and [Jarod Guest](https://polyhaven.com/all?a=Jarod%20Guest).\n\n" +
+                "[Piazza Martin Lutero](https://polyhaven.com/a/piazza_martin_lutero) HDRi background by [Greg Zaal](https://gregzaal.com/) and [Rico Cilliers](https://www.artstation.com/rico_b3d).\n\n" +
+                "[Ninomaru Teien](https://polyhaven.com/a/ninomaru_teien) HDRi background by [Greg Zaal](https://gregzaal.com/).\n\n" +
+                "[Fabric texture](https://3dtextures.me/2024/06/21/fabric-lace-038/) by [3dtextures.me](https://3dtextures.me).\n\n",
             markdown: true,
         });
 
