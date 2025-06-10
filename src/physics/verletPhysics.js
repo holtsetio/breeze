@@ -107,12 +107,12 @@ export class VerletPhysics {
         this.uniforms.friction = uniform(conf.friction);
 
         const vertexStruct = {
-            isFixed: "uint",
-            springCount: "uint",
-            springPtr: "uint",
             position: "vec3",
+            isFixed: "uint",
             initialPosition: "vec3",
+            springPtr: "uint",
             force: "vec3",
+            springCount: "uint",
         };
         this.vertexBuffer = new StructuredArray(vertexStruct, this.vertexCount, "verletVertices");
 

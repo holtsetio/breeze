@@ -30,7 +30,7 @@ const sceneConfigs = {
         instanceCount: 1,
         cutoffPosition: 30,
         friction: 0.25,
-        positionFunction: (isInitial = false) => { return new THREE.Vector3(-14, 4.5, -0.5 + Math.random() * 1); },
+        positionFunction: (isInitial = false) => { return new THREE.Vector3(-10, 5.0, -0.5 + Math.random() * 1); },
         rotationFunction: () => { return new THREE.Quaternion() },
         force: (position, time) => {
             const force = vec3(0).toVar();

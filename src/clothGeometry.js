@@ -245,7 +245,7 @@ export class ClothGeometry {
 
             const position = v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth)).toVar();
             vOpacity.assign(smoothstep(20, 24, position.x).oneMinus());
-            vOpacity.mulAssign(smoothstep(-14, -10, position.x));
+            vOpacity.mulAssign(smoothstep(-10, -8, position.x));
 
             return position;
         } )();
