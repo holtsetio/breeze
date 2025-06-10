@@ -3,19 +3,6 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 import {BufferAttribute, Vector2} from "three/webgpu";
 import {attribute, cross, Fn, texture, transformNormalToView, vec3} from "three/tsl";
 
-import aoMapFile0 from "../assets/1K-velvet_2_ambientocclusion.png";
-import colorMapFile0 from "../assets/1K-velvet_2_basecolor.png";
-import normalMapFile0 from "../assets/1K-velvet_2_normal.png";
-
-import aoMapFile1 from "../assets/1K-fabric_78_ambientocclusion.png";
-import normalMapFile1 from "../assets/1K-fabric_78_normal.png";
-import roughnessMapFile1 from "../assets/1K-fabric_78_roughness.png";
-
-import aoMapFile2 from "../assets/fabric_190_AmbientOcclusion-1K.png";
-import colorMapFile2 from "../assets/fabric_190_Albedo-1K.png";
-import normalMapFile2 from "../assets/fabric_190_Normal-1K.png";
-import roughnessMapFile2 from "../assets/fabric_190_Roughness-1K.png";
-
 import aoMapFile3 from "../assets/Fabric_Lace_038_ambientOcclusion.png";
 import colorMapFile3 from "../assets/Fabric_Lace_038_basecolor.png";
 import normalMapFile3 from "../assets/Fabric_Lace_038_normal.png";

@@ -16,6 +16,7 @@ import {
 } from "three/tsl";
 import {triNoise3Dvec} from "../common/noise.js";
 import {StructuredArray} from "../common/structuredArray.js";
+import {conf} from "../conf.js";
 
 export class VerletPhysics {
     renderer = null;
@@ -28,6 +29,8 @@ export class VerletPhysics {
 
     colliders = [];
 
+    forces = [];
+
     uniforms = {};
 
     kernels = {};
@@ -39,10 +42,6 @@ export class VerletPhysics {
     timeSinceLastStep = 0;
 
     frameNum = 0;
-
-    friction = 0.5;
-
-    stiffness = 0.25;
 
     constructor(renderer){
         this.renderer = renderer;
@@ -64,6 +63,10 @@ export class VerletPhysics {
 
     addCollider(collider) {
         this.colliders.push(collider);
+    }
+
+    addForce(force) {
+        this.forces.push(force);
     }
 
     addVertex(objectId, position, fixed = false) {
@@ -101,8 +104,8 @@ export class VerletPhysics {
 
         this.uniforms.dampening = uniform(0.995);
         this.uniforms.time = uniform(0.0);
-        this.uniforms.stiffness = uniform(this.stiffness);
-        this.uniforms.friction = uniform(this.friction);
+        this.uniforms.stiffness = uniform(conf.stiffness);
+        this.uniforms.friction = uniform(conf.friction);
 
         const vertexStruct = {
             isFixed: "uint",
@@ -193,13 +196,17 @@ export class VerletPhysics {
                 const factor = select(springPtr.greaterThan(0), 1.0, -1.0);
                 force.addAssign(springForce * factor);
             });
-            force.y.subAssign(0.000001);
+
+            this.forces.forEach(f => {
+               force.addAssign(f(position, this.uniforms.time));
+            });
+            /*force.y.subAssign(0.000001);
             const noise = triNoise3Dvec(position.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
             const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
             force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
 
             const noise2 = triNoise3Dvec(position.mul(0.2), 0.5, this.uniforms.time).sub(vec3(0.285, 0.285, 0.285)).mul(0.0001);
-            force.addAssign(noise2);
+            force.addAssign(noise2);*/
 
             const projectedPoint = position.add(force).toVar();
             If (projectedPoint.y.lessThan(0), () => {
@@ -274,8 +281,11 @@ export class VerletPhysics {
         if (!this.isBaked) {
             console.error("Verlet system not yet baked!");
         }
-        this.uniforms.stiffness.value = this.stiffness;
-        this.uniforms.friction.value = this.friction;
+
+        const { stiffness, friction } = conf;
+
+        this.uniforms.stiffness.value = stiffness;
+        this.uniforms.friction.value = friction;
 
         this.frameNum++;
         if (this.frameNum % 50 === 0) {

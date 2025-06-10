@@ -9,7 +9,13 @@ class Conf {
 
     wireframe = false;
 
-    rotateCamera = true;
+    rotateCamera = false;
+
+    stiffness = 0.25;
+
+    friction = 0.5;
+
+    sceneName = "desert";
 
     constructor() {
         if (mobile()) {
@@ -41,9 +47,25 @@ class Conf {
             expanded: false,
         });
 
+        this.settings.addBlade({
+            view: 'list',
+            label: 'scene',
+            options: [
+                {text: 'desert breeze', value: "desert"},
+                {text: 'autumn leaves', value: "autumn"},
+                {text: 'sakura petals' , value: "sakura"},
+            ],
+            value: this.sceneName,
+        }).on('change', (ev) => {
+            this.sceneName = ev.value;
+        });
+
         this.settings.addBinding(this, "rotateCamera");
         this.settings.addBinding(this, "runSimulation");
         this.settings.addBinding(this, "wireframe");
+
+        this.settings.addBinding( this, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
+        this.settings.addBinding( this, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
         this.gui = gui;
     }

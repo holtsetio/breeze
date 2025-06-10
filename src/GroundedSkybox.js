@@ -30,7 +30,7 @@ export class GroundedSkybox extends Mesh {
      * @param {number} radius - The radius of the skybox. Must be large enough to ensure the scene's camera stays inside.
      * @param {number} [resolution=128] - The geometry resolution of the skybox.
      */
-    constructor( map, height, radius, resolution = 128, lightsObject ) {
+    constructor( map, height, radius, resolution = 128 ) {
 
         if ( height <= 0 || radius <= 0 || resolution <= 0 ) {
 
@@ -63,11 +63,11 @@ export class GroundedSkybox extends Mesh {
         pos.needsUpdate = true;
 
         const material = new MeshBasicNodeMaterial({map});
-        const tLevel = uniform(0, "float");
+        /*const tLevel = uniform(0, "float");
         material.colorNode = Fn(() => {
             return texture(map, uv(), tLevel);
         })();
-        conf.settings.addBinding(tLevel, "value", { min: 0, max: 10, step: 0.01 });
+        conf.settings.addBinding(tLevel, "value", { min: 0, max: 10, step: 0.01 });*/
         /*material.fragmentNode = Fn(() => {
             return texture(map).mul(shadow(lightsObject.light, lightsObject.light.shadow));
         })();*/
@@ -75,7 +75,6 @@ export class GroundedSkybox extends Mesh {
         //material.envNode = vec3(1);
 
         super( geometry, material );
-        this.receiveShadow = true;
 
     }
 

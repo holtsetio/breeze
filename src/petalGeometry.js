@@ -33,7 +33,7 @@ export class PetalGeometry {
     material = null;
     object = null;
 
-    constructor(physics, widthSegments, heightSegments) {
+    constructor(physics, widthSegments = 4, heightSegments = 4) {
         //PetalGeometry.objects.push(this);
         this.physics = physics;
         this.widthSegments = widthSegments;
