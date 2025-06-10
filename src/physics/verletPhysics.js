@@ -12,7 +12,7 @@ import {
     distance,
     max,
     time,
-    vec3, dot, vec4, Return
+    vec3, dot, vec4, Return, mix
 } from "three/tsl";
 import {StructuredArray} from "../common/structuredArray.js";
 import {conf} from "../conf.js";
@@ -113,6 +113,7 @@ export class VerletPhysics {
             springPtr: "uint",
             force: "vec3",
             springCount: "uint",
+            smoothedPosition: "vec3",
         };
         this.vertexBuffer = new StructuredArray(vertexStruct, this.vertexCount, "verletVertices");
 
@@ -129,6 +130,7 @@ export class VerletPhysics {
         this.vertices.forEach((vertex)=> {
             const {id, springs, fixed} = vertex;
             this.vertexBuffer.set(id, "position", vertex.customPos || vertex);
+            this.vertexBuffer.set(id, "smoothedPosition", vertex.customPos || vertex);
             this.vertexBuffer.set(id, "initialPosition", vertex);
             this.vertexBuffer.set(id, "isFixed", fixed ? 1 : 0);
             this.vertexBuffer.set(id, "springPtr", influencerPtr);
@@ -220,6 +222,15 @@ export class VerletPhysics {
             this.vertexBuffer.element(instanceIndex).get("position").addAssign(force);
         })().compute(this.vertexCount);
 
+        this.kernels.smoothPositions = Fn(()=>{
+            const vertex = this.vertexBuffer.element(instanceIndex);
+            const position = vertex.get("position").toVar();
+            const smoothedPosition = vertex.get("smoothedPosition").toVar();
+
+            const newPos = mix(smoothedPosition, position, 0.25);
+            vertex.get("smoothedPosition").assign(newPos);
+        })().compute(this.vertexCount);
+
         this.kernels.readPositions = Fn(()=>{
             const firstVertex = this.firstVertexIdData.element(instanceIndex);
             const position = this.vertexBuffer.element(firstVertex).get("position");
@@ -238,6 +249,7 @@ export class VerletPhysics {
             const initialPosition = vertex.get("initialPosition").toVar();
             const transformedPosition = this.uniforms.resetMatrix.mul(vec4(initialPosition, 1)).xyz.toVar();
             vertex.get("position").assign(transformedPosition);
+            vertex.get("smoothedPosition").assign(transformedPosition);
             vertex.get("force").assign(0);
         })().compute(1);
         await this.renderer.computeAsync(this.kernels.resetVertices); //call once to compile
@@ -304,5 +316,6 @@ export class VerletPhysics {
             await this.renderer.computeAsync(this.kernels.computeSpringForces);
             await this.renderer.computeAsync(this.kernels.computeVertexForces);
         }
+        await this.renderer.computeAsync(this.kernels.smoothPositions);
     }
 }

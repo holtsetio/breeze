@@ -236,10 +236,10 @@ export class PetalGeometry {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
             const vertexOffset = attribute( 'vertexOffset' );
-            const v0 = this.physics.vertexBuffer.element( vertexIds.x.add(vertexOffset) ).get("position").toVar();
-            const v1 = this.physics.vertexBuffer.element( vertexIds.y.add(vertexOffset) ).get("position").toVar();
-            const v2 = this.physics.vertexBuffer.element( vertexIds.z.add(vertexOffset) ).get("position").toVar();
-            const v3 = this.physics.vertexBuffer.element( vertexIds.w.add(vertexOffset) ).get("position").toVar();
+            const v0 = this.physics.vertexBuffer.element( vertexIds.x.add(vertexOffset) ).get("smoothedPosition").toVar();
+            const v1 = this.physics.vertexBuffer.element( vertexIds.y.add(vertexOffset) ).get("smoothedPosition").toVar();
+            const v2 = this.physics.vertexBuffer.element( vertexIds.z.add(vertexOffset) ).get("smoothedPosition").toVar();
+            const v3 = this.physics.vertexBuffer.element( vertexIds.w.add(vertexOffset) ).get("smoothedPosition").toVar();
 
             const top = v0.add( v1 );
             const right = v1.add( v3 );
