@@ -63,16 +63,6 @@ export class GroundedSkybox extends Mesh {
         pos.needsUpdate = true;
 
         const material = new MeshBasicNodeMaterial({map});
-        /*const tLevel = uniform(0, "float");
-        material.colorNode = Fn(() => {
-            return texture(map, uv(), tLevel);
-        })();
-        conf.settings.addBinding(tLevel, "value", { min: 0, max: 10, step: 0.01 });*/
-        /*material.fragmentNode = Fn(() => {
-            return texture(map).mul(shadow(lightsObject.light, lightsObject.light.shadow));
-        })();*/
-        //material.lightsNode = lights([]);
-        //material.envNode = vec3(1);
 
         super( geometry, material );
 

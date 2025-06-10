@@ -1,23 +1,6 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import {WebGLRenderer} from "three";
 import {HDRJPGLoader} from "@monogrid/gainmap-js";
-
-/*export const loadGainmap = async (file) => {
-    return new Promise((resolve, reject) => {
-        const worker = new GainmapWorker();
-        worker.onmessage = (event) => {
-            const { width, height, buffer } = event.data;
-            const texture = new THREE.DataTexture( buffer, width, height, THREE.RGBAFormat, THREE.HalfFloatType, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.LinearFilter, THREE.LinearFilter, 1, "srgb-linear");
-            texture.needsUpdate = true;
-            resolve(texture);
-        };
-        worker.onerror = (error) => {
-            console.log(`Worker error: ${error.message}`);
-            throw error;
-        };
-        worker.postMessage(file);
-    });
-};*/
 
 export const loadGainmap = async (file) => {
     const renderer = new WebGLRenderer();

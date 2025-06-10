@@ -47,11 +47,16 @@ class Conf {
             expanded: false,
         });
 
-        this.settings.addBlade({
+        this.sceneFolder = gui.addFolder({
+            title: "scene",
+            expanded: true,
+        });
+
+        this.sceneFolder.addBlade({
             view: 'list',
-            label: 'scene',
+            //label: 'scene',
             options: [
-                {text: 'cloth', value: "cloth"},
+                {text: 'prairie cloth', value: "cloth"},
                 {text: 'autumn leaves', value: "autumn"},
                 {text: 'sakura petals' , value: "sakura"},
             ],

@@ -12,9 +12,8 @@ import {
     distance,
     max,
     time,
-    vec3, dot, vec4, Return, smoothstep
+    vec3, dot, vec4, Return
 } from "three/tsl";
-import {triNoise3Dvec} from "../common/noise.js";
 import {StructuredArray} from "../common/structuredArray.js";
 import {conf} from "../conf.js";
 
@@ -200,13 +199,6 @@ export class VerletPhysics {
             this.forces.forEach(f => {
                force.addAssign(f(position, this.uniforms.time));
             });
-            /*force.y.subAssign(0.000001);
-            const noise = triNoise3Dvec(position.mul(0.01), 0.2, this.uniforms.time).sub(vec3(0.0, 0.285, 0.285));
-            const chaos = smoothstep(-0.5, 1, position.x).mul(0.0001).toVar();
-            force.addAssign(noise.mul(vec3(0.00005, chaos, chaos)).mul(2));
-
-            const noise2 = triNoise3Dvec(position.mul(0.2), 0.5, this.uniforms.time).sub(vec3(0.285, 0.285, 0.285)).mul(0.0001);
-            force.addAssign(noise2);*/
 
             const projectedPoint = position.add(force).toVar();
             If (projectedPoint.y.lessThan(0), () => {
@@ -233,7 +225,6 @@ export class VerletPhysics {
             const position = this.vertexBuffer.element(firstVertex).get("position");
             this.objectPositionData.element(instanceIndex).assign(position);
         })().compute(this.objects.length);
-        //await this.renderer.computeAsync(this.kernels.readPositions); //call once to compile
 
         this.uniforms.resetVertexStart = uniform(0, "uint");
         this.uniforms.resetVertexCount = uniform(0, "uint");
@@ -249,7 +240,6 @@ export class VerletPhysics {
             vertex.get("position").assign(transformedPosition);
             vertex.get("force").assign(0);
         })().compute(1);
-        //console.time("resetVertices");
         await this.renderer.computeAsync(this.kernels.resetVertices); //call once to compile
 
         this.isBaked = true;

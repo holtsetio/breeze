@@ -2,13 +2,11 @@ import * as THREE from "three/webgpu";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import {conf} from "./conf";
 import {Info} from "./info";
-import {attribute, cameraPosition, Fn, If, uniform, vec3, vec4, pass, smoothstep} from "three/tsl";
+import {vec3, smoothstep} from "three/tsl";
 import {VerletPhysics} from "./physics/verletPhysics.js";
 import {SpringVisualizer} from "./physics/springVisualizer.js";
 import {Statue} from "./statue.js";
 
-import { dof } from 'three/addons/tsl/display/DepthOfFieldNode.js';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import ninomaru_teien_4k from "../assets/ninomaru_teien_4k.jpg";
 import piazza_martin_lutero_4k from "../assets/piazza_martin_lutero_4k.jpg";
 import qwantani_noon_4k from "../assets/qwantani_noon_4k.jpg";
@@ -20,18 +18,6 @@ import {GroundedSkybox} from "./GroundedSkybox.js";
 import {Lights} from "./lights.js";
 import {loadGainmap} from "./common/gainmap.js";
 import {triNoise3Dvec} from "./common/noise.js";
-
-const loadHdr = async (file) => {
-    const texture = await new Promise(resolve => {
-        new RGBELoader().load(file, result => {
-            result.mapping = THREE.EquirectangularReflectionMapping;
-
-            resolve(result);
-        });
-    });
-    return texture;
-}
-
 
 const sceneConfigs = {
     cloth: {
@@ -158,8 +144,6 @@ class App {
         hdriTexture.generateMipmaps = true;
 
         this.scene.environment = hdriTexture;
-        //this.scene.background = hdriTexture;
-        //this.scene.backgroundRotation.set(0,Math.PI,0);
         this.scene.environmentRotation.set(0,Math.PI,0);
         this.scene.environmentIntensity = 0.8;
 
@@ -220,14 +204,6 @@ class App {
         this.sceneInitialized = true;
     }
 
-    /*onMouseMove(event) {
-        const pointer = new THREE.Vector2();
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        this.raycaster.setFromCamera(pointer, this.camera);
-        this.rayDirectionUniform.value.copy(this.raycaster.ray.direction);
-    }*/
-
     resize(width, height) {
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
@@ -264,7 +240,6 @@ class App {
         }
 
         await this.renderer.renderAsync(this.scene, this.camera);
-        //await this.postProcessing.renderAsync();
 
         conf.end();
     }
