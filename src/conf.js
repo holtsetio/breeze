@@ -15,7 +15,7 @@ class Conf {
 
     friction = 0.5;
 
-    sceneName = "desert";
+    sceneName = "cloth";
 
     constructor() {
         if (mobile()) {
@@ -51,7 +51,7 @@ class Conf {
             view: 'list',
             label: 'scene',
             options: [
-                {text: 'desert breeze', value: "desert"},
+                {text: 'cloth', value: "cloth"},
                 {text: 'autumn leaves', value: "autumn"},
                 {text: 'sakura petals' , value: "sakura"},
             ],
@@ -64,7 +64,7 @@ class Conf {
         this.settings.addBinding(this, "runSimulation");
         this.settings.addBinding(this, "wireframe");
 
-        this.settings.addBinding( this, 'stiffness', { min: 0.05, max: 0.5, step: 0.01 });
+        this.settings.addBinding( this, 'stiffness', { min: 0.1, max: 0.5, step: 0.01 });
         this.settings.addBinding( this, 'friction', { min: 0.0, max: 1.0, step: 0.01 });
 
         this.gui = gui;

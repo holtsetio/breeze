@@ -1,7 +1,19 @@
 import * as THREE from "three/webgpu";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import {BufferAttribute, Vector2} from "three/webgpu";
-import {attribute, cross, Discard, Fn, If, instanceIndex, texture, transformNormalToView, vec3, vec4} from "three/tsl";
+import {
+    attribute,
+    cross,
+    Discard, float,
+    Fn,
+    If,
+    instanceIndex,
+    smoothstep,
+    texture,
+    transformNormalToView,
+    vec3,
+    vec4
+} from "three/tsl";
 
 import aoMapFile from "../assets/Fabric_Lace_038_ambientOcclusion.png";
 import colorMapFile from "../assets/Fabric_Lace_038_basecolor.png";
@@ -209,9 +221,9 @@ export class ClothGeometry {
             color: "#ff8888",
             normalScale: new Vector2(8,-8),
         });
-        material.opacityNode = texture(alphaMap).r.mul(0.25).add(0.75);
 
         const vNormal = vec3().toVarying("vNormal");
+        const vOpacity = float(0).toVarying("vOpacity");
         material.positionNode = Fn( ( { } ) => {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
@@ -233,9 +245,17 @@ export class ClothGeometry {
             const normal = tangent.mul(side.x).add(bitangent.mul(side.y)).add(n.mul(side.z)).normalize().toVar();
             vNormal.assign(transformNormalToView(normal));
 
-            return v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth));
+            const position = v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth)).toVar();
+            vOpacity.assign(smoothstep(20, 24, position.x).oneMinus());
+            vOpacity.mulAssign(smoothstep(-14, -10, position.x));
+
+            return position;
         } )();
         material.normalNode = vNormal.normalize();
+
+        material.opacityNode = Fn(() => {
+            return texture(alphaMap).r.mul(0.25).add(0.75).mul(vOpacity);
+        })();
 
         this.material = material;
 

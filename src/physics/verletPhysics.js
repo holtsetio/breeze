@@ -129,7 +129,7 @@ export class VerletPhysics {
         let influencerPtr = 0;
         this.vertices.forEach((vertex)=> {
             const {id, springs, fixed} = vertex;
-            this.vertexBuffer.set(id, "position", vertex);
+            this.vertexBuffer.set(id, "position", vertex.customPos || vertex);
             this.vertexBuffer.set(id, "initialPosition", vertex);
             this.vertexBuffer.set(id, "isFixed", fixed ? 1 : 0);
             this.vertexBuffer.set(id, "springPtr", influencerPtr);
@@ -269,12 +269,22 @@ export class VerletPhysics {
     async resetObject(id, position, quaternion = new THREE.Quaternion()) {
         this.objects[id].position.copy(position);
         const scale = new THREE.Vector3(1,1,1);
-        this.uniforms.resetMatrix.value.compose(position, quaternion, scale);
-        this.uniforms.resetVertexStart.value = this.objects[id].vertexStart;
-        this.uniforms.resetVertexCount.value = this.objects[id].vertexCount;
-        this.kernels.resetVertices.count = this.objects[id].vertexCount;
-        this.kernels.resetVertices.updateDispatchCount();
-        await this.renderer.computeAsync(this.kernels.resetVertices);
+        const matrix = new THREE.Matrix4().compose(position, quaternion, scale);
+        if (this.isBaked) {
+            this.uniforms.resetMatrix.value.copy(matrix);
+            this.uniforms.resetVertexStart.value = this.objects[id].vertexStart;
+            this.uniforms.resetVertexCount.value = this.objects[id].vertexCount;
+            this.kernels.resetVertices.count = this.objects[id].vertexCount;
+            this.kernels.resetVertices.updateDispatchCount();
+            await this.renderer.computeAsync(this.kernels.resetVertices);
+        } else {
+            const { vertexStart, vertexCount } = this.objects[id];
+            for (let i = vertexStart; i < vertexStart + vertexCount; i++) {
+                const pos = this.vertices[i].clone();
+                pos.applyMatrix4(matrix);
+                this.vertices[i].customPos = pos;
+            }
+        }
     }
 
     async update(interval, elapsed) {

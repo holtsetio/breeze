@@ -1,7 +1,19 @@
 import * as THREE from "three/webgpu";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import {BufferAttribute, Vector2} from "three/webgpu";
-import {attribute, cross, Discard, Fn, If, instanceIndex, texture, transformNormalToView, vec3, vec4} from "three/tsl";
+import {
+    attribute,
+    cross,
+    Discard,
+    float,
+    Fn,
+    If,
+    instanceIndex, smoothstep,
+    texture,
+    transformNormalToView,
+    vec3,
+    vec4
+} from "three/tsl";
 
 import mapFile from "../assets/sakuraPetal.png";
 
@@ -64,12 +76,17 @@ export class PetalGeometry {
     }
 
     buildGeometry() {
-        const boxGeometry = new THREE.BoxGeometry(1,1,1, this.widthSegments-1, this.heightSegments-1, 2);
-        boxGeometry.clearGroups();
-        boxGeometry.deleteAttribute("uv");
-        boxGeometry.deleteAttribute("normal");
-
-        const geometry = new THREE.InstancedBufferGeometry().copy(BufferGeometryUtils.mergeVertices(boxGeometry));
+        const planeGeometry0 = new THREE.PlaneGeometry(1,1,this.widthSegments-1, this.heightSegments-1);
+        planeGeometry0.deleteAttribute("uv");
+        planeGeometry0.deleteAttribute("normal");
+        planeGeometry0.applyMatrix4(new THREE.Matrix4().makeTranslation(0,0,1));
+        const planeGeometry1 = new THREE.PlaneGeometry(1,1,this.widthSegments-1, this.heightSegments-1);
+        planeGeometry1.applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI,0)));
+        planeGeometry1.applyMatrix4(new THREE.Matrix4().makeTranslation(0,0,-1));
+        planeGeometry1.deleteAttribute("uv");
+        planeGeometry1.deleteAttribute("normal");
+        const mergedPlane = BufferGeometryUtils.mergeGeometries([planeGeometry0, planeGeometry1]);
+        const geometry = new THREE.InstancedBufferGeometry().copy(BufferGeometryUtils.mergeVertices(mergedPlane));
 
         const vertexCount = geometry.attributes.position.count;
         const positionArray = geometry.attributes.position.array;
@@ -214,6 +231,7 @@ export class PetalGeometry {
         //material.opacityNode = texture(alphaMap).r.mul(0.25).add(0.75);
 
         const vNormal = vec3().toVarying("vNormal");
+        const vOpacity = float(0).toVarying("vOpacity");
         material.positionNode = Fn( ( { } ) => {
             const side = attribute( 'side' );
             const vertexIds = attribute( 'vertexIds' );
@@ -235,9 +253,14 @@ export class PetalGeometry {
             const normal = tangent.mul(side.x).add(bitangent.mul(side.y)).add(n.mul(side.z)).normalize().toVar();
             vNormal.assign(transformNormalToView(normal));
 
-            return v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth));
+            const position = v0.add( v1 ).add( v2 ).add( v3 ).mul( 0.25 ).add(normal.mul(clothWidth)).toVar();
+            vOpacity.assign(smoothstep(8, 10, position.x).oneMinus());
+            vOpacity.mulAssign(smoothstep(-10, -8, position.x));
+
+            return position;
         } )();
         material.normalNode = vNormal.normalize();
+        material.opacityNode = vOpacity;
 
         this.material = material;
 

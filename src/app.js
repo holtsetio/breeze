@@ -34,7 +34,7 @@ const loadHdr = async (file) => {
 
 
 const sceneConfigs = {
-    desert: {
+    cloth: {
         hdri: qwantani_noon_4k,
         skyboxHeight: 7.5,
         exposure: 1.35,
@@ -42,8 +42,9 @@ const sceneConfigs = {
         cameraTarget: new THREE.Vector3(0,5.3,0),
         geometryClass: ClothGeometry,
         instanceCount: 1,
+        cutoffPosition: 30,
         friction: 0.35,
-        positionFunction: () => { return new THREE.Vector3(-8 - 20 * Math.random(), 4.5, -0.5 + Math.random() * 1); },
+        positionFunction: (isInitial = false) => { return new THREE.Vector3(-14, 4.5, -0.5 + Math.random() * 1); },
         rotationFunction: () => { return new THREE.Quaternion() },
         force: (position, time) => {
             const force = vec3(0).toVar();
@@ -65,8 +66,9 @@ const sceneConfigs = {
         cameraTarget: new THREE.Vector3(0,5.3,0),
         geometryClass: PetalGeometry,
         instanceCount: 10000,
+        cutoffPosition: 10,
         friction: 0,
-        positionFunction: () => { return new THREE.Vector3(-8 - 20 * Math.random(), 1.0 + Math.random() * 8, -2.5 + Math.random() * 5); },
+        positionFunction: (isInitial = false) => { return new THREE.Vector3((isInitial ? - 2 - 12 * Math.random() : -10), 1.0 + Math.random() * 8, -2.5 + Math.random() * 5); },
         rotationFunction: () => { return new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI)); },
         force: (position, time) => {
             const force = vec3(0).toVar();
@@ -88,8 +90,9 @@ const sceneConfigs = {
         cameraTarget: new THREE.Vector3(0,5.3,0),
         geometryClass: LeafGeometry,
         instanceCount: 800,
+        cutoffPosition: 10,
         friction: 0,
-        positionFunction: () => { return new THREE.Vector3(-8 - 20 * Math.random(), 1.0 + Math.random() * 8, -2.5 + Math.random() * 5); },
+        positionFunction: (isInitial = false) => { return new THREE.Vector3((isInitial ? -2 - 12 * Math.random() : -10), 1.0 + Math.random() * 8, -2.5 + Math.random() * 5); },
         rotationFunction: () => { return new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI, Math.random() * 2 * Math.PI)); },
         force: (position, time) => {
             const force = vec3(0).toVar();
@@ -172,6 +175,7 @@ class App {
         this.controls.target.copy(sceneConfig.cameraTarget);
         this.controls.enableDamping = true;
         this.controls.autoRotate = true;
+        this.controls.maxDistance = 25;
 
         await progressCallback(0.1)
 
@@ -196,15 +200,14 @@ class App {
         }
         await clothGeometry.bake();
         this.clothObject.add(clothGeometry.object);
-        this.clothGeometry = clothGeometry;
-
-        await this.physics.bake();
 
         for (let i = 0; i < this.cloths.length; i++) {
-            const position = sceneConfig.positionFunction();
+            const position = sceneConfig.positionFunction(true);
             const quaternion = sceneConfig.rotationFunction();
             await this.physics.resetObject(this.cloths[i].id, position, quaternion);
         }
+
+        await this.physics.bake();
 
         this.springVisualizer = new SpringVisualizer(this.physics);
         this.scene.add(this.springVisualizer.object);
@@ -253,7 +256,7 @@ class App {
         for (let i = 0; i < checksPerFrame; i++) {
             const object = this.cloths[(this.physics.frameNum * checksPerFrame + i) % this.cloths.length];
             const position = this.physics.objects[object.id].position;
-            if (position.x > 10) {
+            if (position.x > this.sceneConfig.cutoffPosition) {
                 const position = this.sceneConfig.positionFunction();
                 const quaternion = this.sceneConfig.rotationFunction()
                 await this.physics.resetObject(object.id, position, quaternion)
