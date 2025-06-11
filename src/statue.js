@@ -3,13 +3,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import Venus from '../assets/venus_de_milo.glb';
 import VenusSimple from '../assets/venus_simple2.obj';
-import VenusColorMap from '../assets/VenusDeMilo_t_baseColor.png';
-import VenusRoughnessMap from '../assets/VenusDeMilo_t_metallicRoughness.png';
-import VenusNormalMap from '../assets/VenusDeMilo_t_normal.png';
 
 import {BVH} from "./bvh.js";
-import {normalWorld, vec4} from "three/tsl";
-
 
 const textureLoader = new THREE.TextureLoader();
 const loadTexture = (file) => {
