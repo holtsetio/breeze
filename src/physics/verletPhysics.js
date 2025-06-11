@@ -222,10 +222,11 @@ export class VerletPhysics {
             this.vertexBuffer.element(instanceIndex).get("position").addAssign(force);
         })().compute(this.vertexCount);
 
+
         this.kernels.smoothPositions = Fn(()=>{
             const vertex = this.vertexBuffer.element(instanceIndex);
-            const position = vertex.get("position").toVar();
-            const smoothedPosition = vertex.get("smoothedPosition").toVar();
+            const position = vertex.get("position");
+            const smoothedPosition = vertex.get("smoothedPosition");
 
             const newPos = mix(smoothedPosition, position, 0.25);
             vertex.get("smoothedPosition").assign(newPos);
