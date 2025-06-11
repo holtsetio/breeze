@@ -217,10 +217,10 @@ export class ClothGeometry {
             sheenColor: "#FF0000",
             sheenRoughness: 0,
             color: "#ff8888",
-            normalScale: new Vector2(8,-8),
+            normalScale: new Vector2(0.5,-0.5),
         });
 
-        const vNormal = vec3().toVarying("vNormal");
+        const vNormal = vec3().toVarying("v_normalView");
         const vOpacity = float(0).toVarying("vOpacity");
         material.positionNode = Fn( ( { } ) => {
             const side = attribute( 'side' );
@@ -249,7 +249,6 @@ export class ClothGeometry {
 
             return position;
         } )();
-        material.normalNode = vNormal.normalize();
 
         material.opacityNode = Fn(() => {
             return texture(alphaMap).r.mul(0.25).add(0.75).mul(vOpacity);
